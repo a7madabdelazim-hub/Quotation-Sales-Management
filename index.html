@@ -617,11 +617,11 @@ function renderCustomerModal(){
   html += '<h3>'+(isEdit?t("editCustomer"):t("addCustomer"))+'</h3>';
   html += '<div class="space-y">';
   html += '<div class="grid2"><div class="field"><label>'+t("customerCode")+'</label><input class="input mono" value="'+escapeHtml(f.code)+'" oninput="CGA.custForm(\'code\',this.value)"/></div>';
-  html += '<div class="field"><label>'+t("vatNumber")+'</label><input class="input" value="'+escapeHtml(f.vatNumber)+'" oninput="CGA.custForm(\'vatNumber\',this.value)"/></div></div>';
+  html += '<div class="field"><label>'+t("vatNumber")+'</label><input class="input mono" inputmode="numeric" pattern="[0-9]*" maxlength="15" value="'+escapeHtml(f.vatNumber)+'" oninput="CGA.custFormDigits(\'vatNumber\',this,15)"/></div></div>';
   html += '<div class="field"><label>'+t("customerName")+'</label><input class="input" value="'+escapeHtml(f.nameEn)+'" oninput="CGA.custForm(\'nameEn\',this.value)"/></div>';
   html += '<div class="field"><label>'+t("customerNameAr")+'</label><input class="input" dir="rtl" value="'+escapeHtml(f.nameAr)+'" oninput="CGA.custForm(\'nameAr\',this.value)"/></div>';
   html += '<div class="grid2"><div class="field"><label>'+t("contactPerson")+'</label><input class="input" value="'+escapeHtml(f.contactPerson)+'" oninput="CGA.custForm(\'contactPerson\',this.value)"/></div>';
-  html += '<div class="field"><label>'+t("companyPhone")+'</label><input class="input" value="'+escapeHtml(f.phone)+'" oninput="CGA.custForm(\'phone\',this.value)"/></div></div>';
+  html += '<div class="field"><label>'+t("companyPhone")+'</label><input class="input" type="tel" inputmode="tel" value="'+escapeHtml(f.phone)+'" oninput="CGA.custForm(\'phone\',this.value)"/></div></div>';
   html += '<div class="field"><label>'+t("companyEmail")+'</label><input class="input" type="email" value="'+escapeHtml(f.email)+'" oninput="CGA.custForm(\'email\',this.value)"/></div>';
   html += '<div class="field"><label>'+t("billingAddress")+'</label><textarea class="input" oninput="CGA.custForm(\'billingAddress\',this.value)">'+escapeHtml(f.billingAddress)+'</textarea></div>';
   html += '<div class="field"><label>'+t("deliveryAddress")+' ('+t("optional")+')</label><textarea class="input" oninput="CGA.custForm(\'deliveryAddress\',this.value)">'+escapeHtml(f.deliveryAddress)+'</textarea></div>';
@@ -778,16 +778,16 @@ function renderBuilder(){
   html += '<div class="line-item-row" style="background:var(--muted);border-style:dashed">';
   html += '<div class="field" style="margin-bottom:8px"><label>'+t("description")+'</label><input data-fk="draft.description" class="input" placeholder="'+t("descriptionPlaceholder")+'" value="'+escapeHtml(b.draftItem.description)+'" oninput="CGA.draftSet(\'description\',this.value)"/></div>';
   html += '<div class="grid3" style="margin-bottom:8px">';
-  html += '<div class="field"><label>'+t("quantity")+'</label><input data-fk="draft.qty" class="input" type="number" min="0" step="1" value="'+b.draftItem.qty+'" oninput="CGA.draftSet(\'qty\',this.value)"/></div>';
+  html += '<div class="field"><label>'+t("quantity")+'</label><input data-fk="draft.qty" class="input" type="number" inputmode="numeric" pattern="[0-9]*" min="0" step="1" value="'+b.draftItem.qty+'" oninput="CGA.draftSet(\'qty\',this.value)"/></div>';
   html += '<div class="field"><label>'+t("unit")+'</label><select class="input" onchange="CGA.draftSet(\'unit\',this.value)">';
   [["PCS","pcs"],["CTN","ctn"],["meter","m"],["kg","kg"],["set","set"],["box","box"],["liter","liter"],["hour","hour"],["sqm","sqm"]].forEach(function(u){
     html += '<option value="'+u[0]+'" '+(b.draftItem.unit===u[0]?'selected':'')+'>'+t(u[1])+'</option>';
   });
   html += '</select></div>';
-  html += '<div class="field"><label>'+t("unitPrice")+'</label><input data-fk="draft.unitPrice" class="input" type="number" min="0" step="0.01" value="'+b.draftItem.unitPrice+'" oninput="CGA.draftSet(\'unitPrice\',this.value)"/></div>';
+  html += '<div class="field"><label>'+t("unitPrice")+'</label><input data-fk="draft.unitPrice" class="input" type="number" inputmode="decimal" min="0" step="0.01" value="'+b.draftItem.unitPrice+'" oninput="CGA.draftSet(\'unitPrice\',this.value)"/></div>';
   html += '</div>';
   html += '<div class="grid3">';
-  html += '<div class="field"><label>'+t("clicheCost")+'</label><input data-fk="draft.clicheCost" class="input" type="number" min="0" step="0.01" value="'+b.draftItem.clicheCost+'" oninput="CGA.draftSet(\'clicheCost\',this.value)"/></div>';
+  html += '<div class="field"><label>'+t("clicheCost")+'</label><input data-fk="draft.clicheCost" class="input" type="number" inputmode="decimal" min="0" step="0.01" value="'+b.draftItem.clicheCost+'" oninput="CGA.draftSet(\'clicheCost\',this.value)"/></div>';
   html += '<div class="field"><label>'+t("discount")+'</label><input data-fk="draft.discountPercent" class="input" type="number" min="0" max="100" step="1" value="'+b.draftItem.discountPercent+'" oninput="CGA.draftSet(\'discountPercent\',this.value)"/></div>';
   html += '<div class="field"><label>'+t("lineTotal")+'</label><input class="input" id="draftLineTotalDisplay" disabled value="'+formatCurrency(draftTotal,b.currency,lang)+'"/></div>';
   html += '</div>';
@@ -1008,6 +1008,18 @@ Object.assign(window.CGA, {
   },
   closeCustomerModal: function(){ customerUI.modalOpen=false; customerUI.form=null; customerUI.editId=null; render(); },
   custForm: function(k,v){ customerUI.form[k]=v; },
+  /* Sanitizes a field to digits-only in place, without touching focus/cursor
+     via a full re-render — just corrects the same input node directly. */
+  custFormDigits: function(k, el, maxLen){
+    var clean = el.value.replace(/[^0-9]/g,"");
+    if(maxLen) clean = clean.slice(0, maxLen);
+    if(clean !== el.value){
+      var pos = el.selectionStart - (el.value.length - clean.length);
+      el.value = clean;
+      try{ el.setSelectionRange(pos, pos); }catch(e){}
+    }
+    customerUI.form[k] = clean;
+  },
   saveCustomer: function(){
     var f = customerUI.form;
     if(!f.nameEn.trim()){ toast(t("required"),"error"); return; }

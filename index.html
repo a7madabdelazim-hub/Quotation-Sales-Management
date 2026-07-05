@@ -176,7 +176,7 @@ td{padding:10px 12px;border-bottom:1px solid var(--border)}
 .print-doc-body{padding:24px}
 @media (min-width:768px){.print-doc-body{padding:40px}}
 .print-doc-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:24px;margin-bottom:24px;border-bottom:1px solid var(--border);position:relative}
-.print-doc-header::after{content:"";position:absolute;bottom:-1px;left:0;width:120px;height:2px;background:linear-gradient(90deg,#0a2540,#007aff)}
+.print-doc-header::after{content:"";position:absolute;bottom:-1px;left:0;right:0;width:100%;height:2px;background:linear-gradient(90deg,#0a2540,#0f3d63 35%,#007aff 75%,#4fc3f7 100%)}
 .print-doc-logo{height:64px;width:64px;background:#fff;border-radius:16px;border:1px solid var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 14px #0a254026}
 .print-doc-logo img{height:100%;width:100%;object-fit:contain;padding:6px}
 .print-doc-badge{display:inline-block;background:linear-gradient(135deg,#0a2540 0%,#1a3a5c 50%,#007aff 100%);box-shadow:0 4px 14px #0a254040,inset 0 1px #ffffff40;color:#fff;padding:7px 18px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
@@ -554,7 +554,7 @@ function renderDashboard(){
 var customerUI = { search:"", modalOpen:false, editId:null, form:null, deleteId:null };
 var EMPTY_CUSTOMER_FORM = {code:"",nameEn:"",nameAr:"",contactPerson:"",email:"",phone:"",vatNumber:"",billingAddress:"",deliveryAddress:"",notes:""};
 
-function renderCustomers(){
+function renderCustomerListInner(){
   var lang = state.settings.language;
   var q = customerUI.search.toLowerCase();
   var list = state.customers.filter(function(c){
@@ -562,22 +562,7 @@ function renderCustomers(){
       c.contactPerson.toLowerCase().indexOf(q)>-1 || c.phone.toLowerCase().indexOf(q)>-1 ||
       c.email.toLowerCase().indexOf(q)>-1 || c.code.toLowerCase().indexOf(q)>-1;
   });
-  var totalQuotationsValue = state.quotations.reduce(function(s,x){ return s+computeQuotationTotals(x).grandTotal; },0);
-
-  var html = '<div style="padding:16px;max-width:1000px;margin:0 auto">';
-  html += '<div style="display:flex;gap:8px">';
-  html += '<div style="position:relative;flex:1"><span style="position:absolute;top:50%;transform:translateY(-50%);left:12px;color:var(--muted-foreground)">'+ICONS.search+'</span>';
-  html += '<input class="input" data-fk="customerSearch" style="padding-inline-start:34px" placeholder="'+t("searchCustomers")+'" value="'+escapeHtml(customerUI.search)+'" oninput="CGA.customerSearch(this.value)"/></div>';
-  html += '<button class="btn btn-primary" onclick="CGA.openCustomerModal()">'+ICONS.plus+'<span class="hide-sm">'+t("addCustomer")+'</span></button>';
-  html += '</div>';
-
-  html += '<div class="grid3" style="margin-top:12px">';
-  html += '<div class="card"><div class="card-body"><div class="small muted">'+t("customers")+'</div><div style="font-size:20px;font-weight:600">'+state.customers.length+'</div></div></div>';
-  html += '<div class="card"><div class="card-body"><div class="small muted">'+t("totalQuotations")+'</div><div style="font-size:20px;font-weight:600">'+state.quotations.length+'</div></div></div>';
-  html += '<div class="card"><div class="card-body"><div class="small muted">'+t("totalValue")+'</div><div style="font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+formatCurrency(totalQuotationsValue,"SAR",lang)+'</div></div></div>';
-  html += '</div>';
-
-  html += '<div style="margin-top:12px;display:grid;gap:10px">';
+  var html = '';
   if(list.length===0){
     html += '<div class="empty-state"><div class="icon">👥</div><div style="font-weight:600">'+t("noCustomers")+'</div><div class="small">'+t("noCustomersDesc")+'</div>'+
       '<button class="btn btn-primary" style="margin-top:12px" onclick="CGA.openCustomerModal()">'+t("addCustomer")+'</button></div>';
@@ -597,7 +582,28 @@ function renderCustomers(){
       html += '</div></div></div>';
     });
   }
-  html += '</div></div>';
+  return html;
+}
+
+function renderCustomers(){
+  var lang = state.settings.language;
+  var totalQuotationsValue = state.quotations.reduce(function(s,x){ return s+computeQuotationTotals(x).grandTotal; },0);
+
+  var html = '<div style="padding:16px;max-width:1000px;margin:0 auto">';
+  html += '<div style="display:flex;gap:8px">';
+  html += '<div style="position:relative;flex:1"><span style="position:absolute;top:50%;transform:translateY(-50%);left:12px;color:var(--muted-foreground)">'+ICONS.search+'</span>';
+  html += '<input class="input" data-fk="customerSearch" style="padding-inline-start:34px" placeholder="'+t("searchCustomers")+'" value="'+escapeHtml(customerUI.search)+'" oninput="CGA.customerSearch(this.value)"/></div>';
+  html += '<button class="btn btn-primary" onclick="CGA.openCustomerModal()">'+ICONS.plus+'<span class="hide-sm">'+t("addCustomer")+'</span></button>';
+  html += '</div>';
+
+  html += '<div class="grid3" style="margin-top:12px">';
+  html += '<div class="card"><div class="card-body"><div class="small muted">'+t("customers")+'</div><div style="font-size:20px;font-weight:600">'+state.customers.length+'</div></div></div>';
+  html += '<div class="card"><div class="card-body"><div class="small muted">'+t("totalQuotations")+'</div><div style="font-size:20px;font-weight:600">'+state.quotations.length+'</div></div></div>';
+  html += '<div class="card"><div class="card-body"><div class="small muted">'+t("totalValue")+'</div><div style="font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+formatCurrency(totalQuotationsValue,"SAR",lang)+'</div></div></div>';
+  html += '</div>';
+
+  html += '<div id="customerListArea" style="margin-top:12px;display:grid;gap:10px">'+renderCustomerListInner()+'</div>';
+  html += '</div>';
 
   if(customerUI.modalOpen) html += renderCustomerModal();
   if(customerUI.deleteId) html += renderConfirmModal(t("deleteCustomer"), t("confirmDelete"), "CGA.deleteCustomer()", "CGA.cancelDeleteCustomer()");
@@ -638,7 +644,7 @@ function renderConfirmModal(title, desc, confirmFn, cancelFn){
 
 /* ---------------- History ---------------- */
 var historyUI = { search:"", status:"all", deleteId:null };
-function renderHistory(){
+function renderHistoryListInner(){
   var lang = state.settings.language;
   var q = historyUI.search.toLowerCase();
   var list = state.quotations.filter(function(x){
@@ -647,17 +653,7 @@ function renderHistory(){
     return matchQ && matchStatus;
   }).sort(function(a,b){ return new Date(b.date)-new Date(a.date); });
 
-  var html = '<div style="padding:16px;max-width:1100px;margin:0 auto">';
-  html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
-  html += '<div style="position:relative;flex:1;min-width:200px"><span style="position:absolute;top:50%;transform:translateY(-50%);left:12px;color:var(--muted-foreground)">'+ICONS.search+'</span>';
-  html += '<input class="input" data-fk="historySearch" style="padding-inline-start:34px" placeholder="'+t("searchByNumber")+'" value="'+escapeHtml(historyUI.search)+'" oninput="CGA.historySearch(this.value)"/></div>';
-  html += '<select class="input" style="width:auto" onchange="CGA.historyStatus(this.value)">';
-  ["all","draft","sent","accepted","rejected","expired","invoiced"].forEach(function(s){
-    html += '<option value="'+s+'" '+(historyUI.status===s?'selected':'')+'>'+(s==="all"?t("allStatuses"):statusLabel(s))+'</option>';
-  });
-  html += '</select></div>';
-
-  html += '<div style="margin-top:12px">';
+  var html = '';
   if(list.length===0){
     html += '<div class="empty-state"><div class="icon">📄</div><div style="font-weight:600">'+t("noHistory")+'</div><div class="small">'+t("noHistoryDesc")+'</div></div>';
   } else {
@@ -673,7 +669,22 @@ function renderHistory(){
     });
     html += '</tbody></table></div></div>';
   }
-  html += '</div></div>';
+  return html;
+}
+
+function renderHistory(){
+  var html = '<div style="padding:16px;max-width:1100px;margin:0 auto">';
+  html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+  html += '<div style="position:relative;flex:1;min-width:200px"><span style="position:absolute;top:50%;transform:translateY(-50%);left:12px;color:var(--muted-foreground)">'+ICONS.search+'</span>';
+  html += '<input class="input" data-fk="historySearch" style="padding-inline-start:34px" placeholder="'+t("searchByNumber")+'" value="'+escapeHtml(historyUI.search)+'" oninput="CGA.historySearch(this.value)"/></div>';
+  html += '<select class="input" style="width:auto" onchange="CGA.historyStatus(this.value)">';
+  ["all","draft","sent","accepted","rejected","expired","invoiced"].forEach(function(s){
+    html += '<option value="'+s+'" '+(historyUI.status===s?'selected':'')+'>'+(s==="all"?t("allStatuses"):statusLabel(s))+'</option>';
+  });
+  html += '</select></div>';
+
+  html += '<div id="historyListArea" style="margin-top:12px">'+renderHistoryListInner()+'</div>';
+  html += '</div>';
   if(historyUI.deleteId) html += renderConfirmModal(t("deleteQuotation"), t("confirmDelete"), "CGA.deleteQuotation()", "CGA.cancelDeleteQuotation()");
   return html;
 }
@@ -710,6 +721,16 @@ function loadQuotationIntoBuilder(id){
     deliveryCharge:q.deliveryCharge, notes:q.notes, termsConditions:q.termsConditions,
     draftItem:{description:"",qty:1,unit:"PCS",unitPrice:0,clicheCost:0,discountPercent:0}
   };
+}
+
+function renderBuilderTotalsInner(b, totals, lang){
+  var html = '';
+  html += '<div style="display:flex;justify-content:space-between" class="small"><span class="muted">'+t("subtotal")+'</span><span>'+formatCurrency(totals.itemsSubtotal,b.currency,lang)+'</span></div>';
+  if(b.globalDiscountPercent>0) html += '<div style="display:flex;justify-content:space-between" class="small"><span class="muted">'+t("globalDiscount")+' ('+b.globalDiscountPercent+'%)</span><span>- '+formatCurrency(totals.globalDiscountAmount,b.currency,lang)+'</span></div>';
+  if(b.deliveryCharge>0) html += '<div style="display:flex;justify-content:space-between" class="small"><span class="muted">'+t("deliveryCharge")+'</span><span>'+formatCurrency(totals.delivery,b.currency,lang)+'</span></div>';
+  html += '<div style="display:flex;justify-content:space-between" class="small"><span class="muted">'+t("vat")+' ('+Math.round(b.vatRate*100)+'%)</span><span>'+formatCurrency(totals.vatAmount,b.currency,lang)+'</span></div>';
+  html += '<div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:6px"><span style="font-weight:600">'+t("grandTotal")+'</span><span style="font-weight:700;font-size:18px;color:var(--primary)">'+formatCurrency(totals.grandTotal,b.currency,lang)+'</span></div>';
+  return html;
 }
 
 function renderBuilder(){
@@ -768,7 +789,7 @@ function renderBuilder(){
   html += '<div class="grid3">';
   html += '<div class="field"><label>'+t("clicheCost")+'</label><input data-fk="draft.clicheCost" class="input" type="number" min="0" step="0.01" value="'+b.draftItem.clicheCost+'" oninput="CGA.draftSet(\'clicheCost\',this.value)"/></div>';
   html += '<div class="field"><label>'+t("discount")+'</label><input data-fk="draft.discountPercent" class="input" type="number" min="0" max="100" step="1" value="'+b.draftItem.discountPercent+'" oninput="CGA.draftSet(\'discountPercent\',this.value)"/></div>';
-  html += '<div class="field"><label>'+t("lineTotal")+'</label><input class="input" disabled value="'+formatCurrency(draftTotal,b.currency,lang)+'"/></div>';
+  html += '<div class="field"><label>'+t("lineTotal")+'</label><input class="input" id="draftLineTotalDisplay" disabled value="'+formatCurrency(draftTotal,b.currency,lang)+'"/></div>';
   html += '</div>';
   html += '<button class="btn btn-primary btn-block" style="margin-top:10px" onclick="CGA.addLineItem()">'+ICONS.plus+' '+t("addLine")+'</button>';
   html += '</div>';
@@ -783,13 +804,8 @@ function renderBuilder(){
   html += '<div class="field"><label>'+t("vat")+' ('+Math.round(b.vatRate*100)+'%)</label><input data-fk="builder.vatRate" class="input" type="number" min="0" max="1" step="0.01" value="'+b.vatRate+'" oninput="CGA.builderSet(\'vatRate\',this.value)"/></div>';
   html += '<div class="field"><label>'+t("notes")+'</label><textarea data-fk="builder.notes" class="input" placeholder="'+t("addNote")+'" oninput="CGA.builderSet(\'notes\',this.value)">'+escapeHtml(b.notes)+'</textarea></div>';
   html += '<div class="field"><label>'+t("termsConditions")+'</label><textarea data-fk="builder.terms" class="input" style="min-height:110px" oninput="CGA.builderSet(\'termsConditions\',this.value)">'+escapeHtml(b.termsConditions)+'</textarea></div>';
-  html += '<div style="border-top:1px solid var(--border);padding-top:10px;display:grid;gap:4px">';
-  html += '<div style="display:flex;justify-content:space-between" class="small"><span class="muted">'+t("subtotal")+'</span><span>'+formatCurrency(totals.itemsSubtotal,b.currency,lang)+'</span></div>';
-  if(b.globalDiscountPercent>0) html += '<div style="display:flex;justify-content:space-between" class="small"><span class="muted">'+t("globalDiscount")+' ('+b.globalDiscountPercent+'%)</span><span>- '+formatCurrency(totals.globalDiscountAmount,b.currency,lang)+'</span></div>';
-  if(b.deliveryCharge>0) html += '<div style="display:flex;justify-content:space-between" class="small"><span class="muted">'+t("deliveryCharge")+'</span><span>'+formatCurrency(totals.delivery,b.currency,lang)+'</span></div>';
-  html += '<div style="display:flex;justify-content:space-between" class="small"><span class="muted">'+t("vat")+' ('+Math.round(b.vatRate*100)+'%)</span><span>'+formatCurrency(totals.vatAmount,b.currency,lang)+'</span></div>';
-  html += '<div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:6px"><span style="font-weight:600">'+t("grandTotal")+'</span><span style="font-weight:700;font-size:18px;color:var(--primary)">'+formatCurrency(totals.grandTotal,b.currency,lang)+'</span></div>';
-  html += '</div></div></div>';
+  html += '<div id="builderTotalsSummary" style="border-top:1px solid var(--border);padding-top:10px;display:grid;gap:4px">'+renderBuilderTotalsInner(b,totals,lang)+'</div>';
+  html += '</div></div>';
   html += '</div>';
 
   // fixed bottom bar
@@ -954,7 +970,8 @@ function renderPreview(){
 
   html += '<div class="grid2" style="margin-top:40px;padding-top:24px;border-top:1px solid var(--border)">';
   html += '<div><div class="small muted" style="text-transform:uppercase;font-weight:600;margin-bottom:8px">'+t("authorizedBy")+'</div>';
-  html += '<div style="height:64px;display:flex;align-items:flex-end">'+(state.company.signatureUrl?'<img src="'+state.company.signatureUrl+'" style="height:56px;object-fit:contain"/>':'')+'</div></div>';
+  html += '<div style="height:64px;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:flex-start">'+(state.company.signatureUrl?'<img src="'+state.company.signatureUrl+'" style="height:56px;object-fit:contain"/>':'')+'</div>';
+  html += '<div class="small muted" style="margin-top:4px">'+escapeHtml(state.company.nameEn)+'</div></div>';
   html += '<div style="text-align:end"><div class="small muted" style="text-transform:uppercase;font-weight:600;margin-bottom:8px">'+t("customerSignature")+'</div>';
   html += '<div style="height:64px;border-bottom:1px solid var(--border)"></div><div class="small muted" style="margin-top:4px">'+escapeHtml(q.customerName)+'</div></div>';
   html += '</div>';
@@ -972,7 +989,11 @@ function renderPreview(){
 Object.assign(window.CGA, {
 
   /* Customers */
-  customerSearch: function(v){ customerUI.search = v; renderPatch(); },
+  customerSearch: function(v){
+    customerUI.search = v;
+    var el = document.getElementById("customerListArea");
+    if(el) el.innerHTML = renderCustomerListInner();
+  },
   openCustomerModal: function(id){
     if(id){
       var c = state.customers.find(function(x){return x.id===id;});
@@ -1007,7 +1028,11 @@ Object.assign(window.CGA, {
   },
 
   /* History */
-  historySearch: function(v){ historyUI.search=v; renderPatch(); },
+  historySearch: function(v){
+    historyUI.search=v;
+    var el = document.getElementById("historyListArea");
+    if(el) el.innerHTML = renderHistoryListInner();
+  },
   historyStatus: function(v){ historyUI.status=v; render(); },
   confirmDeleteQuotation: function(id){ historyUI.deleteId = id; render(); },
   cancelDeleteQuotation: function(){ historyUI.deleteId = null; render(); },
@@ -1028,12 +1053,36 @@ Object.assign(window.CGA, {
     ensureBuilder();
     if(k==="globalDiscountPercent"||k==="deliveryCharge") v = parseFloat(v)||0;
     if(k==="vatRate") v = parseFloat(v)||0;
-    builderState[k]=v; renderPatch();
+    builderState[k]=v;
+    if(k==="globalDiscountPercent"||k==="deliveryCharge"||k==="vatRate"){
+      // live-affects the totals summary only; never touch the field being typed in
+      var el = document.getElementById("builderTotalsSummary");
+      if(el){
+        var b = builderState;
+        var totals = computeQuotationTotals({items:b.items, globalDiscountPercent:b.globalDiscountPercent, vatRate:b.vatRate, deliveryCharge:b.deliveryCharge});
+        el.innerHTML = renderBuilderTotalsInner(b, totals, state.settings.language);
+      }
+    } else if(k==="notes"||k==="termsConditions"){
+      // nothing else on screen depends on these live — state is saved, no redraw needed
+    } else {
+      // structural changes (customer, currency, dates) come from onchange, not typing — full redraw is safe
+      render();
+    }
   },
   draftSet: function(k,v){
     ensureBuilder();
     if(k==="qty"||k==="unitPrice"||k==="clicheCost"||k==="discountPercent") v = parseFloat(v)||0;
-    builderState.draftItem[k]=v; renderPatch();
+    builderState.draftItem[k]=v;
+    if(k!=="description" && k!=="unit"){
+      // update only the live line-total preview; never touch the field being typed in
+      var d = builderState.draftItem;
+      var draftTotal = d.qty * d.unitPrice * (1-d.discountPercent/100) + (d.clicheCost||0);
+      var el = document.getElementById("draftLineTotalDisplay");
+      if(el) el.value = formatCurrency(draftTotal, builderState.currency, state.settings.language);
+    } else if(k==="unit"){
+      render();
+    }
+    // description: state updates silently, nothing else on screen depends on it live
   },
   addLineItem: function(){
     ensureBuilder();

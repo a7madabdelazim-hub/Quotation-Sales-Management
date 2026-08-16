@@ -57,7 +57,7 @@ button{cursor:pointer}
 @media (min-width:768px){.main-content{padding-bottom:0}}
 
 /* ---------- Sidebar (desktop) ---------- */
-.sidebar{display:none;flex-direction:column;width:288px;border-right:1px solid var(--sidebar-border);background:var(--sidebar);position:sticky;top:0;height:100vh}
+.sidebar{display:none;flex-direction:column;width:288px;border-right:1px solid var(--sidebar-border);background:var(--sidebar);position:sticky;top:0;height:100vh;padding-top:env(safe-area-inset-top)}
 [dir=rtl] .sidebar{border-right:none;border-left:1px solid var(--sidebar-border)}
 @media (min-width:768px){.sidebar{display:flex}}
 .sidebar-header{padding:20px;border-bottom:1px solid var(--sidebar-border);display:flex;align-items:center;gap:12px}
@@ -77,8 +77,8 @@ button{cursor:pointer}
 .sidebar-footer .ver{color:var(--primary);font-weight:600}
 
 /* ---------- Header ---------- */
-.topheader{position:sticky;top:0;z-index:30;background:color-mix(in oklab,var(--background) 80%,transparent);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
-.topheader-in{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:56px;gap:12px}
+.topheader{position:sticky;top:0;z-index:30;background:color-mix(in oklab,var(--background) 80%,transparent);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding-top:env(safe-area-inset-top)}
+.topheader-in{display:flex;align-items:center;justify-content:space-between;height:56px;gap:12px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
 @media (min-width:768px){.topheader-in{padding:0 24px;height:64px}}
 .topheader-left{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
 .topheader-logo{height:32px;width:32px;border-radius:8px;background:#fff;border:1px solid var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -173,40 +173,51 @@ td{padding:10px 12px;border-bottom:1px solid var(--border)}
 
 /* ---------- Print / PDF ---------- */
 .no-print{}
+/* ---------------------------------------------------------------
+   PRINT LAYOUT - single source of truth.
+   These rules live on html.printing (NOT inside @media print) so the
+   exact same layout can be measured on screen a moment before the
+   print dialog opens. Measuring what actually gets printed is what
+   makes the auto-fit ("liquid") scaling reliable.
+   --------------------------------------------------------------- */
+html.printing .no-print{display:none!important}
+html.printing .sidebar,html.printing .topheader,html.printing .bottomnav{display:none!important}
+html.printing .main-content{padding-bottom:0!important}
+/* Lock the document to a true A4 page width. Without this the print
+   output inherits the phone's narrow viewport layout: .grid2 collapses
+   to one column, so the customer block, notes/terms and signatures all
+   stack vertically and the quotation grows tall enough to need a
+   second page (or A3). Forcing the print width keeps the desktop
+   two-column layout on iPhone. */
+html.printing .print-area{max-width:none!important;width:794px!important;margin:0!important;padding:0!important}
+html.printing .print-doc{width:100%;border-radius:0!important;box-shadow:none!important;border:none!important;zoom:var(--print-scale,1)}
+html.printing .print-doc-body{padding:30px 28px!important}
+html.printing .print-doc .grid2{grid-template-columns:1fr 1fr!important;gap:16px!important}
+html.printing .print-doc-footer{margin:16px -28px -30px!important;padding:14px 28px!important}
+html.printing .print-doc table{font-size:12px!important}
+html.printing .print-doc th,html.printing .print-doc td{padding:6px 9px!important}
+
 @media print{
   body *{visibility:hidden}
   .print-area,.print-area *{visibility:visible}
-  .print-area{position:absolute;top:0;left:0;width:100%;padding:0!important;margin:0!important}
+  .print-area{position:absolute;top:0;left:0}
   .no-print{display:none!important}
   /* visibility:hidden does not remove an element from layout - it
      still occupies its space invisibly. The sidebar in particular
      carries height:100vh, so left merely invisible it silently adds
-     a full extra screen-height of empty space to the page, which is
-     enough to spill onto a genuinely blank second printed page.
-     These containers must be fully removed from flow, not just
-     hidden from view. */
+     a full screen-height of empty space and spills onto a blank
+     second page. These must be removed from flow, not just hidden. */
   .sidebar,.topheader,.bottomnav{display:none!important}
-  @page{size:A4;margin:10mm}
-  .print-doc{border-radius:0!important;box-shadow:none!important;border:none!important}
-  .print-doc-body{padding:18px 22px!important}
-  .print-doc-header{padding-bottom:16px!important;margin-bottom:16px!important;break-inside:avoid;page-break-inside:avoid}
-  table{font-size:12px!important}
+  /* margin:0 is what suppresses the browser's own page headers and
+     footers (the source URL, the date and "Page 1 of 2"). The page's
+     breathing room comes from .print-doc-body padding instead. */
+  @page{size:A4;margin:0}
   thead{display:table-header-group}
   tr{break-inside:avoid;page-break-inside:avoid}
-  th,td{padding:7px 10px!important}
-  .print-doc-totals-box{break-inside:avoid;page-break-inside:avoid}
-  .print-keep-together{break-inside:avoid;page-break-inside:avoid}
-  .print-doc-footer{margin:14px -22px -18px!important;padding:12px 22px!important;break-inside:avoid;page-break-inside:avoid}
-  .print-compact table td,.print-compact table th{padding:4px 8px!important;font-size:11px!important;line-height:1.25!important}
-  .print-compact .print-doc-body{padding:12px 18px!important}
-  .print-compact .print-doc-header{padding-bottom:9px!important;margin-bottom:9px!important}
-  .print-compact .print-doc-logo{height:44px!important;width:44px!important}
-  .print-compact .print-doc-totals-box{padding:9px 12px!important;margin-top:10px!important}
-  .print-compact .print-doc-grandtotal{padding:8px 12px!important;margin-top:6px!important}
-  .print-compact .grid2{margin-top:12px!important;padding-top:9px!important;gap:8px!important}
-  .print-compact .print-doc-footer{padding:8px 18px!important;margin-top:8px!important}
-  .print-compact p{margin:2px 0 0!important}
+  .print-doc-header,.print-doc-totals-box,.print-keep-together{break-inside:avoid;page-break-inside:avoid}
+  .print-doc-footer{break-inside:avoid;page-break-inside:avoid}
 }
+
 .print-doc{background:var(--card);border-radius:24px;border:1px solid var(--border);padding:0;overflow:hidden;box-shadow:0 20px 50px -20px #0a254040,0 2px 8px #0a254014;position:relative}
 .print-doc-topbar{height:8px;background:linear-gradient(90deg,#0a2540 0%,#0f3d63 35%,#007aff 75%,#4fc3f7 100%)}
 .print-doc-body{padding:24px}
@@ -240,8 +251,8 @@ var LOGO_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAfQAAADACAYAA
 
 /* ---------------- Translations (full, from original app) ---------------- */
 var T = {
-en:{appName:"Century Gate",appTagline:"Quotation & Sales Management",dashboard:"Dashboard",customers:"Customers",quotations:"Quotations",history:"History",settings:"Settings",newQuotation:"New Quotation",todaysQuotations:"Today's Quotations",monthlySalesTotal:"Monthly Sales Total",pendingQuotations:"Pending Quotations",productionStatus:"Production Status",quickActions:"Quick Actions",recentQuotations:"Recent Quotations",viewAll:"View All",noQuotationsToday:"No quotations created today",noPendingQuotations:"No pending quotations",totalQuotations:"Total Quotations",accepted:"Accepted",conversionRate:"Conversion Rate",not_started:"Not Started",in_production:"In Production",ready:"Ready",delivered:"Delivered",draft:"Draft",sent:"Sent",acceptedStatus:"Accepted",rejected:"Rejected",expired:"Expired",invoiced:"Invoiced",addCustomer:"Add Customer",editCustomer:"Edit Customer",customerCode:"Customer Code",customerName:"Customer Name (EN)",customerNameAr:"Customer Name (AR)",contactPerson:"Contact Person",vatNumber:"VAT Number",billingAddress:"Billing Address",deliveryAddress:"Delivery Address",searchCustomers:"Search customers...",noCustomers:"No customers yet",noCustomersDesc:"Add your first customer to start creating quotations",totalValue:"Total Value",quotationNumber:"Quotation Number",quotationDate:"Quotation Date",validUntil:"Valid Until",selectCustomer:"Select Customer",addLineItem:"Add Line Item",addLine:"Add Line",description:"Description",descriptionPlaceholder:"e.g., 3D Illuminated Channel Letter Sign",clicheCost:"Cliché Cost",clicheCostHint:"One-time setup cost (not multiplied by qty)",quantity:"Qty",unitPrice:"Unit Price",discount:"Disc. %",lineTotal:"Line Total",subtotal:"Subtotal",globalDiscount:"Global Discount %",vat:"VAT",vatAmount:"VAT Amount",deliveryCharge:"Delivery Charge",grandTotal:"Grand Total",notes:"Notes",termsConditions:"Terms & Conditions",addNote:"Add a note...",saveDraft:"Save Draft",saveAndPreview:"Save & Preview",cancel:"Cancel",save:"Save",delete:"Delete",edit:"Edit",preview:"Preview",print:"Print",exportPdf:"Export PDF",shareEmail:"Share via Email",shareWhatsapp:"Share via WhatsApp",noItems:"No items added yet",noItemsDesc:"Click 'Add Line Item' to start building your quotation",searchByNumber:"Search by quotation #...",to:"To",allStatuses:"All Statuses",noHistory:"No quotations found",noHistoryDesc:"Try adjusting your search filters",date:"Date",customer:"Customer",status:"Status",amount:"Amount",companyProfile:"Company Profile",companyNameEn:"Company Name (EN)",companyNameAr:"Company Name (AR)",companyVat:"VAT Number",companyAddress:"Address",companyCity:"City",companyCountry:"Country",companyPhone:"Phone",companyFax:"Fax",companyMobile:"Mobile",companyEmail:"Email",companyWebsite:"Website",companyLogo:"Company Logo",companySignature:"Authorized Signature",signatureNote:"This signature appears fixed on every quotation",vatRate:"Default VAT Rate",currency:"Currency",defaultCurrency:"Default Currency",paymentTerms:"Default Payment Terms",quotationValidity:"Default Quotation Validity (days)",quotationPrefixLabel:"Quotation Number Prefix",language:"Language",theme:"Theme",light:"Light",dark:"Dark",english:"English",arabic:"العربية",saveSettings:"Save Settings",settingsSaved:"Settings saved successfully",quotation:"QUOTATION",authorizedBy:"Authorized By",customerSignature:"Customer Signature",thankYou:"Thank you for your business",confirm:"Confirm",yes:"Yes",no:"No",confirmDelete:"Are you sure you want to delete this?",deleteCustomer:"Delete Customer",deleteQuotation:"Delete Quotation",required:"Required",optional:"Optional",today:"Today",sar:"SAR",items:"items",item:"item",unit:"Unit",uploadLogo:"Upload Logo",uploadSignature:"Upload Signature",statusUpdated:"Status updated",quoteDeleted:"Quotation deleted",quoteSaved:"Quotation saved",quoteUpdated:"Quotation updated",selectCustomerFirst:"Please select a customer",addOneItem:"Add at least one line item",quotationNotFound:"Quotation not found.",backToHistory:"Back to history",editItem:"Edit Item",editingItem:"EDIT ITEM",updateItem:"Update Item",cancelEdit:"Cancel Edit",itemUpdated:"Item updated",generatingPdf:"Generating PDF...",pdfGenerationFailed:"Could not generate the PDF on this device. Please use Print instead.",pdfShareFallback:"PDF downloaded. Attach it manually in WhatsApp.",pcs:"PCS",ctn:"CTN",m:"meter",kg:"kg",set:"set",box:"box",liter:"liter",hour:"hour",sqm:"sqm"},
-ar:{appName:"سينشوري جيت",appTagline:"إدارة عروض الأسعار والمبيعات",dashboard:"لوحة التحكم",customers:"العملاء",quotations:"عروض الأسعار",history:"السجل",settings:"الإعدادات",newQuotation:"عرض سعر جديد",todaysQuotations:"عروض اليوم",monthlySalesTotal:"إجمالي مبيعات الشهر",pendingQuotations:"عروض معلقة",productionStatus:"حالة الإنتاج",quickActions:"إجراءات سريعة",recentQuotations:"أحدث العروض",viewAll:"عرض الكل",noQuotationsToday:"لا توجد عروض أسعار اليوم",noPendingQuotations:"لا توجد عروض معلقة",totalQuotations:"إجمالي العروض",accepted:"مقبولة",conversionRate:"معدل التحويل",not_started:"لم يبدأ",in_production:"قيد الإنتاج",ready:"جاهز",delivered:"تم التسليم",draft:"مسودة",sent:"مرسل",acceptedStatus:"مقبول",rejected:"مرفوض",expired:"منتهي",invoiced:"مفوتر",addCustomer:"إضافة عميل",editCustomer:"تعديل العميل",customerCode:"رمز العميل",customerName:"اسم العميل (إنجليزي)",customerNameAr:"اسم العميل (عربي)",contactPerson:"مسؤول الاتصال",vatNumber:"الرقم الضريبي",billingAddress:"عنوان الفاتورة",deliveryAddress:"عنوان التسليم",searchCustomers:"ابحث عن العملاء...",noCustomers:"لا يوجد عملاء بعد",noCustomersDesc:"أضف أول عميل لبدء إنشاء عروض الأسعار",totalValue:"إجمالي القيمة",quotationNumber:"رقم عرض السعر",quotationDate:"تاريخ عرض السعر",validUntil:"صالح حتى",selectCustomer:"اختر العميل",addLineItem:"إضافة بند",addLine:"إضافة",description:"الوصف",descriptionPlaceholder:"مثال: لوحة أحرف بارزة مضيئة",clicheCost:"تكلفة الكليشيه",clicheCostHint:"تكلفة إعداد لمرة واحدة (لا تضرب بالكمية)",quantity:"الكمية",unitPrice:"سعر الوحدة",discount:"خصم %",lineTotal:"إجمالي البند",subtotal:"المجموع الفرعي",globalDiscount:"خصم عام %",vat:"ضريبة القيمة المضافة",vatAmount:"قيمة الضريبة",deliveryCharge:"رسوم التسليم",grandTotal:"الإجمالي الكلي",notes:"ملاحظات",termsConditions:"الشروط والأحكام",addNote:"أضف ملاحظة...",saveDraft:"حفظ كمسودة",saveAndPreview:"حفظ ومعاينة",cancel:"إلغاء",save:"حفظ",delete:"حذف",edit:"تعديل",preview:"معاينة",print:"طباعة",exportPdf:"تصدير PDF",shareEmail:"مشاركة عبر البريد",shareWhatsapp:"مشاركة عبر واتساب",noItems:"لم تتم إضافة بنود بعد",noItemsDesc:"اضغط على 'إضافة بند' لبدء إنشاء عرض السعر",searchByNumber:"ابحث برقم العرض...",to:"إلى",allStatuses:"جميع الحالات",noHistory:"لا توجد عروض أسعار",noHistoryDesc:"حاول تعديل معايير البحث",date:"التاريخ",customer:"العميل",status:"الحالة",amount:"المبلغ",companyProfile:"ملف الشركة",companyNameEn:"اسم الشركة (إنجليزي)",companyNameAr:"اسم الشركة (عربي)",companyVat:"الرقم الضريبي",companyAddress:"العنوان",companyCity:"المدينة",companyCountry:"الدولة",companyPhone:"الهاتف",companyFax:"الفاكس",companyMobile:"الجوال",companyEmail:"البريد الإلكتروني",companyWebsite:"الموقع الإلكتروني",companyLogo:"شعار الشركة",companySignature:"التوقيع المعتمد",signatureNote:"يظهر هذا التوقيع ثابتاً على كل عرض سعر",vatRate:"نسبة الضريبة الافتراضية",currency:"العملة",defaultCurrency:"العملة الافتراضية",paymentTerms:"شروط الدفع الافتراضية",quotationValidity:"صلاحية العرض الافتراضية (أيام)",quotationPrefixLabel:"بادئة رقم العرض",language:"اللغة",theme:"المظهر",light:"فاتح",dark:"داكن",english:"English",arabic:"العربية",saveSettings:"حفظ الإعدادات",settingsSaved:"تم حفظ الإعدادات بنجاح",quotation:"عرض سعر",authorizedBy:"اعتماد",customerSignature:"توقيع العميل",thankYou:"شكراً لتعاملكم معنا",confirm:"تأكيد",yes:"نعم",no:"لا",confirmDelete:"هل أنت متأكد من الحذف؟",deleteCustomer:"حذف العميل",deleteQuotation:"حذف العرض",required:"مطلوب",optional:"اختياري",today:"اليوم",sar:"ريال",items:"بنود",item:"بند",unit:"الوحدة",uploadLogo:"رفع شعار",uploadSignature:"رفع توقيع",statusUpdated:"تم تحديث الحالة",quoteDeleted:"تم حذف عرض السعر",quoteSaved:"تم حفظ عرض السعر",quoteUpdated:"تم تحديث عرض السعر",selectCustomerFirst:"الرجاء اختيار العميل",addOneItem:"أضف بنداً واحداً على الأقل",quotationNotFound:"عرض السعر غير موجود.",backToHistory:"العودة إلى السجل",editItem:"تعديل البند",editingItem:"تعديل البند",updateItem:"تحديث البند",cancelEdit:"إلغاء التعديل",itemUpdated:"تم تحديث البند",generatingPdf:"جارٍ إنشاء PDF...",pdfGenerationFailed:"تعذر إنشاء PDF على هذا الجهاز. الرجاء استخدام الطباعة بدلاً من ذلك.",pdfShareFallback:"تم تنزيل PDF. أرفقه يدوياً في واتساب.",pcs:"قطعة",ctn:"كرتونة",m:"متر",kg:"كجم",set:"طقم",box:"صندوق",liter:"لتر",hour:"ساعة",sqm:"م²"}
+en:{appName:"Century Gate",appTagline:"Quotation & Sales Management",dashboard:"Dashboard",customers:"Customers",quotations:"Quotations",history:"History",settings:"Settings",newQuotation:"New Quotation",todaysQuotations:"Today's Quotations",monthlySalesTotal:"Monthly Sales Total",pendingQuotations:"Pending Quotations",productionStatus:"Production Status",quickActions:"Quick Actions",recentQuotations:"Recent Quotations",viewAll:"View All",noQuotationsToday:"No quotations created today",noPendingQuotations:"No pending quotations",totalQuotations:"Total Quotations",accepted:"Accepted",conversionRate:"Conversion Rate",not_started:"Not Started",in_production:"In Production",ready:"Ready",delivered:"Delivered",draft:"Draft",sent:"Sent",acceptedStatus:"Accepted",rejected:"Rejected",expired:"Expired",invoiced:"Invoiced",addCustomer:"Add Customer",editCustomer:"Edit Customer",customerCode:"Customer Code",customerName:"Customer Name (EN)",customerNameAr:"Customer Name (AR)",contactPerson:"Contact Person",vatNumber:"VAT Number",billingAddress:"Billing Address",deliveryAddress:"Delivery Address",searchCustomers:"Search customers...",noCustomers:"No customers yet",noCustomersDesc:"Add your first customer to start creating quotations",totalValue:"Total Value",quotationNumber:"Quotation Number",quotationDate:"Quotation Date",validUntil:"Valid Until",selectCustomer:"Select Customer",addLineItem:"Add Line Item",addLine:"Add Line",description:"Description",descriptionPlaceholder:"e.g., 3D Illuminated Channel Letter Sign",clicheCost:"Cliché Cost",clicheCostHint:"One-time setup cost (not multiplied by qty)",quantity:"Qty",unitPrice:"Unit Price",discount:"Disc. %",lineTotal:"Line Total",subtotal:"Subtotal",globalDiscount:"Global Discount %",vat:"VAT",vatAmount:"VAT Amount",deliveryCharge:"Delivery Charge",grandTotal:"Grand Total",notes:"Notes",termsConditions:"Terms & Conditions",addNote:"Add a note...",saveDraft:"Save Draft",saveAndPreview:"Save & Preview",cancel:"Cancel",save:"Save",delete:"Delete",edit:"Edit",preview:"Preview",print:"Print",noItems:"No items added yet",noItemsDesc:"Click 'Add Line Item' to start building your quotation",searchByNumber:"Search by quotation #...",to:"To",allStatuses:"All Statuses",noHistory:"No quotations found",noHistoryDesc:"Try adjusting your search filters",date:"Date",customer:"Customer",status:"Status",amount:"Amount",companyProfile:"Company Profile",companyNameEn:"Company Name (EN)",companyNameAr:"Company Name (AR)",companyVat:"VAT Number",companyAddress:"Address",companyCity:"City",companyCountry:"Country",companyPhone:"Phone",companyFax:"Fax",companyMobile:"Mobile",companyEmail:"Email",companyWebsite:"Website",companyLogo:"Company Logo",companySignature:"Authorized Signature",signatureNote:"This signature appears fixed on every quotation",vatRate:"Default VAT Rate",currency:"Currency",defaultCurrency:"Default Currency",paymentTerms:"Default Payment Terms",quotationValidity:"Default Quotation Validity (days)",quotationPrefixLabel:"Quotation Number Prefix",language:"Language",theme:"Theme",light:"Light",dark:"Dark",english:"English",arabic:"العربية",saveSettings:"Save Settings",settingsSaved:"Settings saved successfully",quotation:"QUOTATION",authorizedBy:"Authorized By",customerSignature:"Customer Signature",thankYou:"Thank you for your business",confirm:"Confirm",yes:"Yes",no:"No",confirmDelete:"Are you sure you want to delete this?",deleteCustomer:"Delete Customer",deleteQuotation:"Delete Quotation",required:"Required",optional:"Optional",today:"Today",sar:"SAR",items:"items",item:"item",unit:"Unit",uploadLogo:"Upload Logo",uploadSignature:"Upload Signature",statusUpdated:"Status updated",quoteDeleted:"Quotation deleted",quoteSaved:"Quotation saved",quoteUpdated:"Quotation updated",selectCustomerFirst:"Please select a customer",addOneItem:"Add at least one line item",quotationNotFound:"Quotation not found.",backToHistory:"Back to history",editItem:"Edit Item",editingItem:"EDIT ITEM",updateItem:"Update Item",cancelEdit:"Cancel Edit",itemUpdated:"Item updated",pcs:"PCS",ctn:"CTN",m:"meter",kg:"kg",set:"set",box:"box",liter:"liter",hour:"hour",sqm:"sqm"},
+ar:{appName:"سينشوري جيت",appTagline:"إدارة عروض الأسعار والمبيعات",dashboard:"لوحة التحكم",customers:"العملاء",quotations:"عروض الأسعار",history:"السجل",settings:"الإعدادات",newQuotation:"عرض سعر جديد",todaysQuotations:"عروض اليوم",monthlySalesTotal:"إجمالي مبيعات الشهر",pendingQuotations:"عروض معلقة",productionStatus:"حالة الإنتاج",quickActions:"إجراءات سريعة",recentQuotations:"أحدث العروض",viewAll:"عرض الكل",noQuotationsToday:"لا توجد عروض أسعار اليوم",noPendingQuotations:"لا توجد عروض معلقة",totalQuotations:"إجمالي العروض",accepted:"مقبولة",conversionRate:"معدل التحويل",not_started:"لم يبدأ",in_production:"قيد الإنتاج",ready:"جاهز",delivered:"تم التسليم",draft:"مسودة",sent:"مرسل",acceptedStatus:"مقبول",rejected:"مرفوض",expired:"منتهي",invoiced:"مفوتر",addCustomer:"إضافة عميل",editCustomer:"تعديل العميل",customerCode:"رمز العميل",customerName:"اسم العميل (إنجليزي)",customerNameAr:"اسم العميل (عربي)",contactPerson:"مسؤول الاتصال",vatNumber:"الرقم الضريبي",billingAddress:"عنوان الفاتورة",deliveryAddress:"عنوان التسليم",searchCustomers:"ابحث عن العملاء...",noCustomers:"لا يوجد عملاء بعد",noCustomersDesc:"أضف أول عميل لبدء إنشاء عروض الأسعار",totalValue:"إجمالي القيمة",quotationNumber:"رقم عرض السعر",quotationDate:"تاريخ عرض السعر",validUntil:"صالح حتى",selectCustomer:"اختر العميل",addLineItem:"إضافة بند",addLine:"إضافة",description:"الوصف",descriptionPlaceholder:"مثال: لوحة أحرف بارزة مضيئة",clicheCost:"تكلفة الكليشيه",clicheCostHint:"تكلفة إعداد لمرة واحدة (لا تضرب بالكمية)",quantity:"الكمية",unitPrice:"سعر الوحدة",discount:"خصم %",lineTotal:"إجمالي البند",subtotal:"المجموع الفرعي",globalDiscount:"خصم عام %",vat:"ضريبة القيمة المضافة",vatAmount:"قيمة الضريبة",deliveryCharge:"رسوم التسليم",grandTotal:"الإجمالي الكلي",notes:"ملاحظات",termsConditions:"الشروط والأحكام",addNote:"أضف ملاحظة...",saveDraft:"حفظ كمسودة",saveAndPreview:"حفظ ومعاينة",cancel:"إلغاء",save:"حفظ",delete:"حذف",edit:"تعديل",preview:"معاينة",print:"طباعة",noItems:"لم تتم إضافة بنود بعد",noItemsDesc:"اضغط على 'إضافة بند' لبدء إنشاء عرض السعر",searchByNumber:"ابحث برقم العرض...",to:"إلى",allStatuses:"جميع الحالات",noHistory:"لا توجد عروض أسعار",noHistoryDesc:"حاول تعديل معايير البحث",date:"التاريخ",customer:"العميل",status:"الحالة",amount:"المبلغ",companyProfile:"ملف الشركة",companyNameEn:"اسم الشركة (إنجليزي)",companyNameAr:"اسم الشركة (عربي)",companyVat:"الرقم الضريبي",companyAddress:"العنوان",companyCity:"المدينة",companyCountry:"الدولة",companyPhone:"الهاتف",companyFax:"الفاكس",companyMobile:"الجوال",companyEmail:"البريد الإلكتروني",companyWebsite:"الموقع الإلكتروني",companyLogo:"شعار الشركة",companySignature:"التوقيع المعتمد",signatureNote:"يظهر هذا التوقيع ثابتاً على كل عرض سعر",vatRate:"نسبة الضريبة الافتراضية",currency:"العملة",defaultCurrency:"العملة الافتراضية",paymentTerms:"شروط الدفع الافتراضية",quotationValidity:"صلاحية العرض الافتراضية (أيام)",quotationPrefixLabel:"بادئة رقم العرض",language:"اللغة",theme:"المظهر",light:"فاتح",dark:"داكن",english:"English",arabic:"العربية",saveSettings:"حفظ الإعدادات",settingsSaved:"تم حفظ الإعدادات بنجاح",quotation:"عرض سعر",authorizedBy:"اعتماد",customerSignature:"توقيع العميل",thankYou:"شكراً لتعاملكم معنا",confirm:"تأكيد",yes:"نعم",no:"لا",confirmDelete:"هل أنت متأكد من الحذف؟",deleteCustomer:"حذف العميل",deleteQuotation:"حذف العرض",required:"مطلوب",optional:"اختياري",today:"اليوم",sar:"ريال",items:"بنود",item:"بند",unit:"الوحدة",uploadLogo:"رفع شعار",uploadSignature:"رفع توقيع",statusUpdated:"تم تحديث الحالة",quoteDeleted:"تم حذف عرض السعر",quoteSaved:"تم حفظ عرض السعر",quoteUpdated:"تم تحديث عرض السعر",selectCustomerFirst:"الرجاء اختيار العميل",addOneItem:"أضف بنداً واحداً على الأقل",quotationNotFound:"عرض السعر غير موجود.",backToHistory:"العودة إلى السجل",editItem:"تعديل البند",editingItem:"تعديل البند",updateItem:"تحديث البند",cancelEdit:"إلغاء التعديل",itemUpdated:"تم تحديث البند",pcs:"قطعة",ctn:"كرتونة",m:"متر",kg:"كجم",set:"طقم",box:"صندوق",liter:"لتر",hour:"ساعة",sqm:"م²"}
 };
 function t(key){ var lang = state.settings.language; return (T[lang] && T[lang][key]) || T.en[key] || key; }
 
@@ -382,10 +393,7 @@ var ICONS = {
   search:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
   edit:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',
   trash:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>',
-  copy:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
   print:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>',
-  mail:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>',
-  whatsapp:'<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.7-.9-2-1-.3-.1-.5-.1-.6.1-.2.3-.7 1-.8 1.1-.2.2-.3.2-.5.1-.3-.1-1.2-.5-2.3-1.5-.8-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.2-.4.1-.2 0-.3 0-.5-.1-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.5h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.7-.7 2-1.4.2-.7.2-1.2.1-1.4-.1-.1-.3-.2-.6-.3z"/><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.1-1.3A10 10 0 1 0 12 2z" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
   sun:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
   moon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>',
   lang:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1m14 20-5-10-5 10M14 18h6"/></svg>',
@@ -394,8 +402,7 @@ var ICONS = {
   wallet:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5Z"/><path d="M16 12h.01M21 12h-4a2 2 0 0 0 0 4h4"/></svg>',
   hourglass:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 22h14M5 2h14M5 2c0 8 14 6 14 12S5 12 5 22M19 2c0 8-14 6-14 12s14 8 14 20"/></svg>',
   trendUp:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m23 6-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>',
-  check:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>',
-  download:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>'
+  check:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>'
 };
 
 /* ---------------- helpers ---------------- */
@@ -938,540 +945,79 @@ function renderSettings(){
 }
 
 /* ---------------------------------------------------------------
-   PDF EXPORT ENGINE v2 (offline, zero external dependencies)
+   PRINT - liquid auto-fit
    ---------------------------------------------------------------
-   Draws the quotation directly as a native vector/text PDF (lines,
-   rectangles, text, and the embedded company logo) using the SAME
-   data model that powers the on-screen preview - it does not
-   rasterize the HTML/CSS itself. This avoids a hard browser
-   security wall: any canvas that has had an SVG <foreignObject>
-   (HTML content) drawn onto it is permanently "tainted" and
-   Chrome/Safari refuse to read pixels back out of it, which makes
-   an HTML-screenshot-to-PDF approach unworkable without a bundled
-   external library. Building genuine PDF text/vector content
-   ourselves sidesteps that entirely, and also produces a smaller
-   file with crisp, selectable text.
-   Used by both "Export PDF" and "Share via WhatsApp".
+   The print stylesheet lives on html.printing rather than inside
+   @media print, so the very layout the browser is about to print can
+   be measured on screen first. We measure the real document height at
+   true A4 width, then shrink it with CSS zoom just enough to land on
+   a single page. Zooming out also widens the usable line length in
+   CSS pixels, so text re-wraps onto fewer lines and the document gets
+   shorter faster than the zoom factor alone - hence the few
+   refinement passes below.
+   Quotations too large to fit one page at the minimum readable zoom
+   simply flow onto additional pages normally.
    ================================================================= */
+var PRINT_PAGE_H = 1122;   /* A4 height at 96dpi, @page margin:0 */
+var PRINT_MIN_ZOOM = 0.55; /* never shrink past readable */
+var printCleanupTimer = null;
 
-var PDF_COLORS = {
-  primary:"#042f54", foreground:"#0b121a", muted:"#5d646c",
-  border:"#dfe1e4", accent:"#d7eaff", white:"#ffffff", card:"#ffffff"
-};
-
-function pdfHexToUnit(hex){
-  hex = String(hex).replace("#","");
-  if(hex.length===3) hex = hex.split("").map(function(c){return c+c;}).join("");
-  var r = parseInt(hex.substr(0,2),16)/255;
-  var g = parseInt(hex.substr(2,2),16)/255;
-  var b = parseInt(hex.substr(4,2),16)/255;
-  return [r,g,b];
+function measurePrintHeight(){
+  var doc = document.querySelector(".print-area .print-doc");
+  if(!doc) return 0;
+  /* offsetHeight is in unzoomed CSS px, so multiply back by the zoom
+     actually in effect to get the real rendered height. */
+  var z = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--print-scale")) || 1;
+  return doc.offsetHeight * z;
 }
 
-/* Standard-14 fonts (Helvetica / Helvetica-Bold) use WinAnsiEncoding
-   with no font file embedding required. Any character outside that
-   range (e.g. Arabic) is replaced with "?" rather than corrupting
-   the file - Arabic-language quotations should use Print instead,
-   which renders via the system's native font/shaping support. */
-function pdfEscapeText(str){
-  str = String(str==null ? "" : str);
-  var out = "";
-  for(var i=0;i<str.length;i++){
-    var code = str.charCodeAt(i);
-    if(code===0x2014 || code===0x2013){ out += "-"; continue; }
-    if(code===0x2022){ out += "*"; continue; }
-    if(code===0x00d7){ out += "x"; continue; }
-    if(code > 255){ out += "?"; continue; }
-    out += str[i];
-  }
-  return out.replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)");
-}
-function pdfHasNonLatin(str){
-  str = String(str==null?"":str);
-  for(var i=0;i<str.length;i++){ if(str.charCodeAt(i) > 255) return true; }
-  return false;
+function endPrintMode(){
+  if(printCleanupTimer){ clearTimeout(printCleanupTimer); printCleanupTimer = null; }
+  document.documentElement.classList.remove("printing");
+  document.documentElement.style.removeProperty("--print-scale");
 }
 
-/* Approximate Helvetica glyph widths (fractions of font size) - used
-   only for our own line-wrapping decisions, not for PDF rendering
-   itself (the PDF viewer always uses the real font metrics), so
-   approximate values are safe. */
-function pdfCharWidth(ch, bold){
-  if(ch===" ") return 0.278;
-  if("ijl.,:;'!|".indexOf(ch)>=0) return 0.28;
-  if("mwMW%@".indexOf(ch)>=0) return bold?0.95:0.9;
-  if(ch>="0" && ch<="9") return 0.556;
-  if(ch===ch.toUpperCase() && ch!==ch.toLowerCase()) return bold?0.72:0.667;
-  return bold?0.56:0.5;
-}
-function pdfTextWidth(str, fontSize, bold){
-  str = String(str==null?"":str);
-  var w = 0;
-  for(var i=0;i<str.length;i++) w += pdfCharWidth(str[i], bold) * fontSize;
-  return w;
-}
-function pdfWrapText(str, maxWidth, fontSize, bold){
-  str = String(str==null?"":str);
-  var words = str.split(/\s+/).filter(Boolean);
-  if(words.length===0) return [""];
-  var lines = [], cur = "";
-  words.forEach(function(w){
-    var test = cur ? (cur+" "+w) : w;
-    if(pdfTextWidth(test, fontSize, bold) <= maxWidth || !cur){
-      cur = test;
-    } else {
-      lines.push(cur);
-      cur = w;
+function printQuotation(){
+  var root = document.documentElement;
+  root.style.setProperty("--print-scale", "1");
+  root.classList.add("printing");
+
+  try{
+    var height = measurePrintHeight();
+    if(height > 0){
+      var zoom = 1;
+      /* Only shrink if a single page is realistically reachable;
+         otherwise leave it full size and let it paginate. */
+      if(height > PRINT_PAGE_H && height <= PRINT_PAGE_H/PRINT_MIN_ZOOM){
+        for(var pass=0; pass<4; pass++){
+          var target = (PRINT_PAGE_H * 0.985) / height;
+          zoom = Math.max(PRINT_MIN_ZOOM, Math.min(1, zoom * target));
+          root.style.setProperty("--print-scale", String(zoom));
+          height = measurePrintHeight();
+          if(height <= PRINT_PAGE_H * 0.985) break;
+        }
+      }
     }
-  });
-  if(cur) lines.push(cur);
-  return lines;
+  }catch(e){ /* never block printing on a measurement problem */ }
+
+  window.print();
+
+  /* afterprint is unreliable on iOS Safari (the share sheet can
+     suspend the page), so pair it with focus and a timed fallback. */
+  printCleanupTimer = setTimeout(endPrintMode, 2000);
 }
 
-function pdfDataUrlToBytes(dataUrl){
-  var base64 = dataUrl.split(",")[1];
-  var bin = atob(base64);
-  var bytes = new Uint8Array(bin.length);
-  for(var i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
-  return bytes;
-}
-function pdfGetJpegSize(bytes){
-  var i = 2;
-  while(i < bytes.length - 9){
-    if(bytes[i] !== 0xFF){ i++; continue; }
-    var marker = bytes[i+1];
-    if(marker >= 0xC0 && marker <= 0xC3){
-      var height = (bytes[i+5]<<8) | bytes[i+6];
-      var width = (bytes[i+7]<<8) | bytes[i+8];
-      return {width:width, height:height};
-    }
-    var len = (bytes[i+2]<<8) | bytes[i+3];
-    i += 2 + len;
-  }
-  return {width:0,height:0};
-}
-
-/* Rasterizes a plain <img> (never an SVG/foreignObject) to a JPEG
-   data URL via canvas. Safe: drawing a normal same-document data:
-   URI image never taints the canvas, so toDataURL works reliably. */
-function pdfImageToJpeg(dataUrl, maxDim){
-  return new Promise(function(resolve, reject){
-    if(!dataUrl){ reject(new Error("no_image")); return; }
-    var img = new Image();
-    img.onload = function(){
-      try{
-        var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
-        if(!w || !h){ reject(new Error("bad_image_dims")); return; }
-        var scale = Math.min(1, maxDim/Math.max(w,h));
-        var cw = Math.max(1, Math.round(w*scale)), ch = Math.max(1, Math.round(h*scale));
-        var canvas = document.createElement("canvas");
-        canvas.width = cw; canvas.height = ch;
-        var ctx = canvas.getContext("2d");
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0,0,cw,ch);
-        ctx.drawImage(img,0,0,cw,ch);
-        resolve({dataUrl: canvas.toDataURL("image/jpeg",0.92), width:cw, height:ch});
-      }catch(e){ reject(e); }
-    };
-    img.onerror = function(){ reject(new Error("image_load_failed")); };
-    img.src = dataUrl;
-  });
-}
-
-/* ---------------- low-level page/content builder ---------------- */
-function PdfDoc(pageW, pageH, marginTop, marginBottom){
-  this.pageW = pageW; this.pageH = pageH;
-  this.marginTop = marginTop; this.marginBottom = marginBottom;
-  this.pages = [];
-  this.curPage = null;
-  this.cursorY = 0;
-  this.onNewPage = null;
-  this.newPage();
-}
-PdfDoc.prototype.newPage = function(){
-  this.curPage = {ops:[], images:[]};
-  this.pages.push(this.curPage);
-  this.cursorY = this.pageH - this.marginTop;
-  return this.curPage;
-};
-PdfDoc.prototype.ensureSpace = function(h){
-  if(this.cursorY - h < this.marginBottom){
-    this.newPage();
-    if(this.onNewPage) this.onNewPage(this);
-  }
-};
-PdfDoc.prototype.op = function(s){ this.curPage.ops.push(s); };
-PdfDoc.prototype.setFillColor = function(hex){
-  var c = pdfHexToUnit(hex);
-  this.op(c[0].toFixed(3)+" "+c[1].toFixed(3)+" "+c[2].toFixed(3)+" rg");
-};
-PdfDoc.prototype.setStrokeColor = function(hex){
-  var c = pdfHexToUnit(hex);
-  this.op(c[0].toFixed(3)+" "+c[1].toFixed(3)+" "+c[2].toFixed(3)+" RG");
-};
-PdfDoc.prototype.rectFill = function(x,y,w,h,hex){
-  this.setFillColor(hex);
-  this.op(x.toFixed(2)+" "+y.toFixed(2)+" "+w.toFixed(2)+" "+h.toFixed(2)+" re f");
-};
-PdfDoc.prototype.hLine = function(x1,y,x2,hex,widthPt){
-  this.setStrokeColor(hex||PDF_COLORS.border);
-  this.op((widthPt||1).toFixed(2)+" w");
-  this.op(x1.toFixed(2)+" "+y.toFixed(2)+" m "+x2.toFixed(2)+" "+y.toFixed(2)+" l S");
-};
-PdfDoc.prototype.text = function(x,y,str,opts){
-  opts = opts || {};
-  var size = opts.size || 9;
-  var font = opts.bold ? "/F2" : "/F1";
-  this.setFillColor(opts.color || PDF_COLORS.foreground);
-  this.op("BT");
-  this.op(font+" "+size+" Tf");
-  this.op(x.toFixed(2)+" "+y.toFixed(2)+" Td");
-  this.op("("+pdfEscapeText(str)+") Tj");
-  this.op("ET");
-};
-PdfDoc.prototype.textRight = function(xRight,y,str,opts){
-  opts = opts || {};
-  var w = pdfTextWidth(pdfEscapeText(str), opts.size||9, !!opts.bold);
-  this.text(xRight-w, y, str, opts);
-};
-PdfDoc.prototype.textCenter = function(xCenter,y,str,opts){
-  opts = opts || {};
-  var w = pdfTextWidth(pdfEscapeText(str), opts.size||9, !!opts.bold);
-  this.text(xCenter-w/2, y, str, opts);
-};
-/* Draws pre-wrapped lines top-down starting at startY, paginating
-   automatically; returns the Y position after the last line. */
-PdfDoc.prototype.textBlock = function(x, startY, lines, opts){
-  opts = opts || {};
-  var lineH = opts.lineHeight || ((opts.size||9)*1.35);
-  var y = startY;
-  for(var i=0;i<lines.length;i++){
-    this.ensureSpace(lineH);
-    if(y !== this.cursorY && this.pages[this.pages.length-1].ops.length===0){ y = this.cursorY; }
-    if(this.curPage.ops.length===0 && y > this.cursorY){ y = this.cursorY; }
-    this.text(x, y, lines[i], opts);
-    y -= lineH;
-    this.cursorY = y;
-  }
-  return y;
-};
-PdfDoc.prototype.addImage = function(jpegDataUrl, x, y, w, h){
-  var bytes = pdfDataUrlToBytes(jpegDataUrl);
-  var dims = pdfGetJpegSize(bytes);
-  var name = "Im"+this.curPage.images.length+"_"+this.pages.length;
-  this.curPage.images.push({name:name, bytes:bytes, width:dims.width, height:dims.height});
-  this.op("q "+w.toFixed(2)+" 0 0 "+h.toFixed(2)+" "+x.toFixed(2)+" "+y.toFixed(2)+" cm /"+name+" Do Q");
-};
-
-/* Single-byte (Latin-1/WinAnsi-compatible) string -> bytes. We must
-   NOT use TextEncoder/UTF-8 here: pdfEscapeText already guarantees
-   every character code is <=255 so it matches a single WinAnsi byte,
-   but UTF-8 would re-encode any code point >127 (e.g. the e-acute in
-   "Cliche" and any high-byte glyph) into two bytes, corrupting the
-   PDF string. All content in this document (operators + escaped
-   text) is single-byte-safe by construction, so a direct char-code
-   mapping is both correct and simpler than UTF-8. */
-function pdfLatin1Bytes(str){
-  var bytes = new Uint8Array(str.length);
-  for(var i=0;i<str.length;i++) bytes[i] = str.charCodeAt(i) & 0xFF;
-  return bytes;
-}
-
-function pdfSerializeDocument(doc){
-  var chunks = [];
-  function pushStr(s){ chunks.push(pdfLatin1Bytes(s)); }
-  function pushBytes(b){ chunks.push(b); }
-  function len(){ var t=0; for(var i=0;i<chunks.length;i++) t+=chunks[i].length; return t; }
-  var objOffsets = [];
-  function addObj(num, body){ objOffsets[num]=len(); pushStr(num+" 0 obj\n"+body+"\nendobj\n"); }
-  function addStreamObj(num, dict, bytes){
-    objOffsets[num]=len();
-    pushStr(num+" 0 obj\n"+dict+"\nstream\n");
-    pushBytes(bytes);
-    pushStr("\nendstream\nendobj\n");
-  }
-
-  pushStr("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
-
-  var nextNum = 5; /* 1=Catalog 2=Pages 3=F1 4=F2 */
-  var pageObjNums = [], contentObjNums = [], pageImageObjNums = [];
-  doc.pages.forEach(function(){ pageObjNums.push(nextNum++); });
-  doc.pages.forEach(function(){ contentObjNums.push(nextNum++); });
-  doc.pages.forEach(function(pg){
-    var map = {};
-    pg.images.forEach(function(im){ map[im.name] = nextNum++; });
-    pageImageObjNums.push(map);
-  });
-  var totalObjs = nextNum-1;
-
-  addObj(1, "<< /Type /Catalog /Pages 2 0 R >>");
-  var kids = pageObjNums.map(function(n){ return n+" 0 R"; }).join(" ");
-  addObj(2, "<< /Type /Pages /Kids ["+kids+"] /Count "+doc.pages.length+" >>");
-  addObj(3, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
-  addObj(4, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
-
-  doc.pages.forEach(function(pg, idx){
-    var pnum = pageObjNums[idx], cnum = contentObjNums[idx];
-    var xobjEntries = pg.images.map(function(im){ return "/"+im.name+" "+pageImageObjNums[idx][im.name]+" 0 R"; }).join(" ");
-    var resources = "<< /Font << /F1 3 0 R /F2 4 0 R >>" + (xobjEntries ? (" /XObject << "+xobjEntries+" >>") : "") + " /ProcSet [/PDF /Text /ImageC] >>";
-    var pageDict = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 "+doc.pageW.toFixed(2)+" "+doc.pageH.toFixed(2)+"] /Resources "+resources+" /Contents "+cnum+" 0 R >>";
-    addObj(pnum, pageDict);
-
-    var contentBytes = pdfLatin1Bytes(pg.ops.join("\n"));
-    addStreamObj(cnum, "<< /Length "+contentBytes.length+" >>", contentBytes);
-
-    pg.images.forEach(function(im){
-      var inum = pageImageObjNums[idx][im.name];
-      var imgDict = "<< /Type /XObject /Subtype /Image /Width "+im.width+" /Height "+im.height+
-        " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+im.bytes.length+" >>";
-      addStreamObj(inum, imgDict, im.bytes);
-    });
-  });
-
-  var xrefStart = len();
-  var count = totalObjs+1;
-  var xref = "xref\n0 "+count+"\n0000000000 65535 f \n";
-  for(var n=1;n<=totalObjs;n++){
-    var off = objOffsets[n] || 0;
-    var offStr = String(off);
-    while(offStr.length<10) offStr = "0"+offStr;
-    xref += offStr+" 00000 n \n";
-  }
-  pushStr(xref);
-  pushStr("trailer\n<< /Size "+count+" /Root 1 0 R >>\nstartxref\n"+xrefStart+"\n%%EOF");
-
-  var total = len();
-  var out = new Uint8Array(total);
-  var pos = 0;
-  for(var i=0;i<chunks.length;i++){ out.set(chunks[i], pos); pos += chunks[i].length; }
-  return new Blob([out], {type:"application/pdf"});
-}
-
-/* ---------------- quotation layout ---------------- */
-function pdfEn(key){ return (T.en && T.en[key]) || key; }
-
-function pdfDrawTableHeader(doc, cols, y){
-  var rowH = 20;
-  doc.rectFill(cols.x0, y-rowH, cols.totalW, rowH, PDF_COLORS.accent);
-  var ty = y - rowH + 6.5;
-  doc.text(cols.x0+6, ty, "#", {size:8,bold:true,color:PDF_COLORS.primary});
-  doc.text(cols.descX, ty, pdfEn("description").toUpperCase(), {size:8,bold:true,color:PDF_COLORS.primary});
-  doc.textCenter(cols.qtyX+cols.qtyW/2, ty, pdfEn("quantity").toUpperCase(), {size:8,bold:true,color:PDF_COLORS.primary});
-  doc.textRight(cols.priceX+cols.priceW-4, ty, pdfEn("unitPrice").toUpperCase(), {size:8,bold:true,color:PDF_COLORS.primary});
-  doc.textRight(cols.clicheX+cols.clicheW-4, ty, pdfEn("clicheCost").toUpperCase(), {size:8,bold:true,color:PDF_COLORS.primary});
-  doc.textCenter(cols.discX+cols.discW/2, ty, pdfEn("discount").toUpperCase(), {size:8,bold:true,color:PDF_COLORS.primary});
-  doc.textRight(cols.totalX+cols.totalW-6, ty, pdfEn("lineTotal").toUpperCase(), {size:8,bold:true,color:PDF_COLORS.primary});
-  return y - rowH;
-}
-
-/* Lays out one quotation onto a fresh PdfDoc and returns it. All
-   text/labels are rendered in English regardless of the app's
-   current UI language (see module header comment for why). */
-async function pdfLayoutQuotation(q, customer, company, totals, logoJpeg, signatureJpeg){
-  var PAGE_W = 595.28, PAGE_H = 841.89, MARGIN = 40;
-  var doc = new PdfDoc(PAGE_W, PAGE_H, MARGIN, MARGIN);
-  var contentW = PAGE_W - 2*MARGIN;
-  var fc = function(v){ return formatCurrency(v, q.currency, "en"); };
-
-  /* ---- Header: logo + company block (left), badge + number + date (right) ---- */
-  var headerTop = doc.cursorY;
-  var logoSize = 46;
-  if(logoJpeg){
-    doc.addImage(logoJpeg.dataUrl, MARGIN, headerTop-logoSize, logoSize, logoSize);
-  }
-  var compX = MARGIN + (logoJpeg ? logoSize+12 : 0);
-  var compY = headerTop - 12;
-  doc.text(compX, compY, company.nameEn||"", {size:14,bold:true,color:PDF_COLORS.primary});
-  compY -= 14;
-  var addrLine = [company.address,company.city,company.country].filter(Boolean).join(", ");
-  if(addrLine){ doc.text(compX, compY, addrLine, {size:8,color:PDF_COLORS.muted}); compY -= 11; }
-  var phoneLine = [company.phone, company.fax?("Fax: "+company.fax):""].filter(Boolean).join("  \u2022  ");
-  if(phoneLine){ doc.text(compX, compY, phoneLine, {size:8,color:PDF_COLORS.muted}); compY -= 11; }
-  var emailLine = [company.email, company.website].filter(Boolean).join("  \u2022  ");
-  if(emailLine){ doc.text(compX, compY, emailLine, {size:8,color:PDF_COLORS.muted}); compY -= 11; }
-  if(company.vatNumber){ doc.text(compX, compY, "VAT: "+company.vatNumber, {size:8,color:PDF_COLORS.muted}); compY -= 11; }
-
-  var badgeW = 90, badgeH = 18;
-  doc.rectFill(PAGE_W-MARGIN-badgeW, headerTop-badgeH+4, badgeW, badgeH, PDF_COLORS.primary);
-  doc.textCenter(PAGE_W-MARGIN-badgeW/2, headerTop-badgeH+9, pdfEn("quotation"), {size:8,bold:true,color:PDF_COLORS.white});
-  doc.textRight(PAGE_W-MARGIN, headerTop-badgeH-8, q.number||"", {size:15,bold:true,color:PDF_COLORS.primary});
-  doc.textRight(PAGE_W-MARGIN, headerTop-badgeH-21, formatDate(q.date,"en"), {size:8,color:PDF_COLORS.muted});
-
-  var headerBottom = Math.min(compY-6, headerTop-badgeH-30);
-  doc.hLine(MARGIN, headerBottom, PAGE_W-MARGIN, PDF_COLORS.primary, 1.4);
-  doc.cursorY = headerBottom - 20;
-
-  /* ---- Customer block (left) + quotation meta (right) ---- */
-  var custTop = doc.cursorY;
-  doc.text(MARGIN, custTop, pdfEn("to").toUpperCase()+":", {size:8,bold:true,color:PDF_COLORS.muted});
-  var cy = custTop - 14;
-  doc.text(MARGIN, cy, q.customerName||"", {size:12,bold:true}); cy -= 13;
-  if(customer && customer.contactPerson){ doc.text(MARGIN, cy, customer.contactPerson, {size:8,color:PDF_COLORS.muted}); cy -= 11; }
-  if(customer && customer.phone){ doc.text(MARGIN, cy, customer.phone, {size:8,color:PDF_COLORS.muted}); cy -= 11; }
-  if(customer && customer.email){ doc.text(MARGIN, cy, customer.email, {size:8,color:PDF_COLORS.muted}); cy -= 11; }
-  if(customer && customer.vatNumber){ doc.text(MARGIN, cy, pdfEn("vatNumber")+": "+customer.vatNumber, {size:8,color:PDF_COLORS.muted}); cy -= 11; }
-  if(customer && customer.billingAddress && !pdfHasNonLatin(customer.billingAddress)){
-    var addrLines = pdfWrapText(customer.billingAddress, 260, 8, false);
-    addrLines.slice(0,3).forEach(function(ln){ doc.text(MARGIN, cy, ln, {size:8,color:PDF_COLORS.muted}); cy -= 10; });
-  }
-
-  var metaRightX = PAGE_W-MARGIN;
-  var my = custTop - 2;
-  doc.textRight(metaRightX, my, pdfEn("quotationDate")+":  "+formatDate(q.date,"en"), {size:8.5}); my -= 13;
-  doc.textRight(metaRightX, my, pdfEn("validUntil")+":  "+formatDate(q.validUntil,"en"), {size:8.5}); my -= 13;
-  doc.textRight(metaRightX, my, pdfEn("currency")+":  "+q.currency, {size:8.5});
-
-  doc.cursorY = Math.min(cy, my) - 16;
-
-  /* ---- Items table ---- */
-  var cols = {
-    x0: MARGIN, totalW: contentW,
-    numW:20, descX:0, qtyX:0, qtyW:55, priceX:0, priceW:65, clicheX:0, clicheW:60, discX:0, discW:42, totalX:0, totalW2:0
-  };
-  cols.descX = MARGIN + cols.numW + 4;
-  var descW = 200;
-  cols.qtyX = cols.descX + descW;
-  cols.priceX = cols.qtyX + cols.qtyW;
-  cols.clicheX = cols.priceX + cols.priceW;
-  cols.discX = cols.clicheX + cols.clicheW;
-  cols.totalX = cols.discX + cols.discW;
-  cols.totalW3 = (MARGIN+contentW) - cols.totalX;
-  cols.totalX = cols.discX + cols.discW;
-  var totalColW = (MARGIN+contentW) - cols.totalX;
-  cols.totalW = totalColW; // reused below as the last column's own width
-
-  doc.ensureSpace(20);
-  doc.cursorY = pdfDrawTableHeader(doc, {
-    x0:MARGIN, totalW:contentW, descX:cols.descX,
-    qtyX:cols.qtyX, qtyW:cols.qtyW, priceX:cols.priceX, priceW:cols.priceW,
-    clicheX:cols.clicheX, clicheW:cols.clicheW, discX:cols.discX, discW:cols.discW,
-    totalX:cols.totalX, totalW:totalColW
-  }, doc.cursorY);
-
-  doc.onNewPage = function(d){
-    d.cursorY = pdfDrawTableHeader(d, {
-      x0:MARGIN, totalW:contentW, descX:cols.descX,
-      qtyX:cols.qtyX, qtyW:cols.qtyW, priceX:cols.priceX, priceW:cols.priceW,
-      clicheX:cols.clicheX, clicheW:cols.clicheW, discX:cols.discX, discW:cols.discW,
-      totalX:cols.totalX, totalW:totalColW
-    }, d.cursorY);
-  };
-
-  q.items.forEach(function(it, idx){
-    var lineTotal = computeLineTotal(it);
-    var descLines = pdfWrapText(it.description||"", descW-8, 8.5, false);
-    var rowH = Math.max(18, descLines.length*11 + 8);
-    doc.ensureSpace(rowH);
-    var rowTop = doc.cursorY;
-    doc.text(MARGIN+4, rowTop-12, String(idx+1), {size:8.5,color:PDF_COLORS.muted});
-    var dy = rowTop-12;
-    descLines.forEach(function(ln){ doc.text(cols.descX, dy, ln, {size:8.5}); dy -= 11; });
-    doc.textCenter(cols.qtyX+cols.qtyW/2, rowTop-12, it.qty+" "+pdfUnitAbbrev(it.unit), {size:8.5});
-    doc.textRight(cols.priceX+cols.priceW-4, rowTop-12, fc(it.unitPrice), {size:8.5});
-    doc.textRight(cols.clicheX+cols.clicheW-4, rowTop-12, it.clicheCost>0?fc(it.clicheCost):"-", {size:8.5});
-    doc.textCenter(cols.discX+cols.discW/2, rowTop-12, it.discountPercent>0?(it.discountPercent+"%"):"-", {size:8.5});
-    doc.textRight(cols.totalX+totalColW-6, rowTop-12, fc(lineTotal), {size:8.5,bold:true});
-    doc.hLine(MARGIN, rowTop-rowH, MARGIN+contentW, PDF_COLORS.border, 0.6);
-    doc.cursorY = rowTop - rowH;
-  });
-  doc.onNewPage = null;
-  doc.cursorY -= 16;
-
-  /* ---- Totals box (right aligned) ---- */
-  var boxW = 230, lineH = 14;
-  var rowsCount = 2 + (q.globalDiscountPercent>0?1:0) + (q.deliveryCharge>0?1:0);
-  var boxH = rowsCount*lineH + 30;
-  doc.ensureSpace(boxH+10);
-  var boxX = MARGIN+contentW-boxW, boxTop = doc.cursorY;
-  doc.rectFill(boxX, boxTop-boxH, boxW, boxH, "#f5f8fb");
-  var ty = boxTop - 14;
-  function totalsRow(label, val, opts){
-    doc.text(boxX+12, ty, label, {size:8.5,color:PDF_COLORS.muted});
-    doc.textRight(boxX+boxW-12, ty, val, Object.assign({size:8.5},opts||{}));
-    ty -= lineH;
-  }
-  totalsRow(pdfEn("subtotal"), fc(totals.itemsSubtotal));
-  if(q.globalDiscountPercent>0) totalsRow(pdfEn("globalDiscount")+" ("+q.globalDiscountPercent+"%)", "- "+fc(totals.globalDiscountAmount));
-  if(q.deliveryCharge>0) totalsRow(pdfEn("deliveryCharge"), fc(totals.delivery));
-  totalsRow(pdfEn("vat")+" ("+Math.round(q.vatRate*100)+"%)", fc(totals.vatAmount));
-  doc.rectFill(boxX, boxTop-boxH, boxW, 24, PDF_COLORS.primary);
-  doc.text(boxX+12, boxTop-boxH+8, pdfEn("grandTotal"), {size:9.5,bold:true,color:PDF_COLORS.white});
-  doc.textRight(boxX+boxW-12, boxTop-boxH+8, fc(totals.grandTotal), {size:11,bold:true,color:PDF_COLORS.white});
-  doc.cursorY = boxTop - boxH - 22;
-
-  /* ---- Notes / Terms / Signatures / Footer, kept together where it fits ---- */
-  var notesLines = (q.notes && !pdfHasNonLatin(q.notes)) ? pdfWrapText(q.notes, (contentW-20)/2, 8, false) : [];
-  var termsLines = (q.termsConditions && !pdfHasNonLatin(q.termsConditions)) ? pdfWrapText(q.termsConditions, (contentW-20)/2, 7.5, false) : [];
-  var tailHeight = 0;
-  if(notesLines.length || termsLines.length) tailHeight += Math.max(notesLines.length, termsLines.length)*10 + 26;
-  tailHeight += 90; /* signatures */
-  tailHeight += 36; /* footer */
-  doc.ensureSpace(Math.min(tailHeight, PAGE_H-2*MARGIN-40));
-
-  if(notesLines.length || termsLines.length){
-    doc.hLine(MARGIN, doc.cursorY, MARGIN+contentW, PDF_COLORS.border, 0.6);
-    doc.cursorY -= 14;
-    var colW = (contentW-20)/2;
-    var startY = doc.cursorY;
-    if(notesLines.length){
-      doc.text(MARGIN, startY, pdfEn("notes").toUpperCase(), {size:7.5,bold:true,color:PDF_COLORS.muted});
-      var ny = startY-12;
-      notesLines.forEach(function(ln){ doc.text(MARGIN, ny, ln, {size:8}); ny -= 10; });
-    }
-    if(termsLines.length){
-      var tx = MARGIN+colW+20;
-      doc.text(tx, startY, pdfEn("termsConditions").toUpperCase(), {size:7.5,bold:true,color:PDF_COLORS.muted});
-      var tty = startY-12;
-      termsLines.forEach(function(ln){ doc.text(tx, tty, ln, {size:7.5,color:PDF_COLORS.muted}); tty -= 9.5; });
-    }
-    doc.cursorY -= (Math.max(notesLines.length,termsLines.length)*10 + 14);
-  }
-
-  doc.hLine(MARGIN, doc.cursorY, MARGIN+contentW, PDF_COLORS.border, 0.6);
-  doc.cursorY -= 26;
-  var sigY = doc.cursorY;
-  doc.text(MARGIN, sigY, pdfEn("authorizedBy").toUpperCase(), {size:7.5,bold:true,color:PDF_COLORS.muted});
-  if(signatureJpeg){ doc.addImage(signatureJpeg.dataUrl, MARGIN, sigY-40, 90, 32); }
-  doc.hLine(MARGIN, sigY-46, MARGIN+180, PDF_COLORS.border, 0.8);
-  doc.text(MARGIN, sigY-58, company.nameEn||"", {size:8,color:PDF_COLORS.muted});
-
-  var custSigX = MARGIN+contentW-180;
-  doc.text(MARGIN+contentW, sigY, "", {}); /* no-op keep symmetry */
-  doc.textRight(MARGIN+contentW, sigY, pdfEn("customerSignature").toUpperCase(), {size:7.5,bold:true,color:PDF_COLORS.muted});
-  doc.hLine(custSigX, sigY-46, MARGIN+contentW, PDF_COLORS.border, 0.8);
-  doc.textRight(MARGIN+contentW, sigY-58, q.customerName||"", {size:8,color:PDF_COLORS.muted});
-
-  doc.cursorY = sigY - 78;
-  doc.hLine(MARGIN, doc.cursorY, MARGIN+contentW, PDF_COLORS.border, 0.6);
-  doc.cursorY -= 16;
-  doc.textCenter(PAGE_W/2, doc.cursorY, pdfEn("thankYou"), {size:9,bold:true,color:PDF_COLORS.primary});
-  doc.cursorY -= 12;
-  var footLine = [company.nameEn, company.email, company.phone].filter(Boolean).join("  \u2022  ");
-  doc.textCenter(PAGE_W/2, doc.cursorY, footLine, {size:7.5,color:PDF_COLORS.muted});
-
-  return doc;
-}
-
-function pdfUnitAbbrev(u){
-  var map = {PCS:"PCS",CTN:"CTN",meter:"M",kg:"KG",set:"SET",box:"BOX",liter:"L",hour:"HR",sqm:"SQM"};
-  return map[u] || String(u||"").toUpperCase();
-}
-
-/* Top-level orchestration used by both Export PDF and WhatsApp share. */
-async function generateQuotationPdfBlob(quotationId){
-  var q = state.quotations.find(function(x){ return x.id===quotationId; });
-  if(!q) throw new Error("quotation_not_found");
-  var customer = state.customers.find(function(c){ return c.id===q.customerId; });
-  var company = state.company;
-  var totals = computeQuotationTotals(q);
-
-  var logoJpeg = null, signatureJpeg = null;
-  try{ if(company.logoUrl) logoJpeg = await pdfImageToJpeg(company.logoUrl, 300); }catch(e){ logoJpeg = null; }
-  try{ if(company.signatureUrl) signatureJpeg = await pdfImageToJpeg(company.signatureUrl, 400); }catch(e){ signatureJpeg = null; }
-
-  var doc = await pdfLayoutQuotation(q, customer, company, totals, logoJpeg, signatureJpeg);
-  return pdfSerializeDocument(doc);
-}
+/* The browser captures the printable document during the window.print()
+   call itself, so restoring the screen layout shortly afterwards is safe.
+   Several listeners are used because afterprint alone is unreliable on
+   iOS Safari, where the share sheet can suspend the page. */
+window.addEventListener("afterprint", endPrintMode);
+window.addEventListener("focus", function(){
+  if(document.documentElement.classList.contains("printing")) setTimeout(endPrintMode, 200);
+});
+document.addEventListener("visibilitychange", function(){
+  if(!document.hidden && document.documentElement.classList.contains("printing")) setTimeout(endPrintMode, 200);
+});
 
 /* ---------------- Quotation Preview / Print ---------------- */
 function renderPreview(){
@@ -1483,9 +1029,6 @@ function renderPreview(){
   var totals = computeQuotationTotals(q);
   var customer = state.customers.find(function(c){return c.id===q.customerId;});
   var fc = function(v){ return formatCurrency(v,q.currency,lang); };
-  var termsLen = (q.termsConditions||"").length + (q.notes||"").length;
-  var compact = q.items.length<=4 && termsLen<900;
-
   var html = '<div style="min-height:100vh;background:var(--muted)">';
   html += '<div class="no-print" style="position:sticky;top:56px;z-index:20;background:color-mix(in oklab,var(--background) 95%,transparent);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)">';
   html += '<div style="max-width:900px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
@@ -1494,14 +1037,10 @@ function renderPreview(){
   ["draft","sent","accepted","rejected","expired","invoiced"].forEach(function(s){ html += '<option value="'+s+'" '+(q.status===s?'selected':'')+'>'+statusLabel(s)+'</option>'; });
   html += '</select>';
   html += '<button class="btn btn-glass btn-sm" onclick="CGA.editFromPreview(\''+q.id+'\')">'+ICONS.edit+' '+t("edit")+'</button>';
-  if(customer){
-    html += '<button class="btn btn-glass btn-sm" onclick="CGA.shareWhatsapp(\''+q.id+'\')">'+ICONS.whatsapp+' WhatsApp</button>';
-  }
-  html += '<button class="btn btn-glass btn-sm" onclick="CGA.exportPdf(\''+q.id+'\')">'+ICONS.download+' '+t("exportPdf")+'</button>';
-  html += '<button class="btn btn-primary btn-sm" onclick="window.print()">'+ICONS.print+' '+t("print")+'</button>';
+  html += '<button class="btn btn-primary btn-sm" onclick="CGA.printQuotation()">'+ICONS.print+' '+t("print")+'</button>';
   html += '</div></div>';
 
-  html += '<div class="print-area'+(compact?' print-compact':'')+'" style="max-width:900px;margin:0 auto;padding:16px">';
+  html += '<div class="print-area" style="max-width:900px;margin:0 auto;padding:16px">';
   html += '<div class="print-doc"><div class="print-doc-topbar"></div><div class="print-doc-body">';
   html += '<div class="print-doc-header">';
   html += '<div style="display:flex;gap:12px;align-items:flex-start"><div class="print-doc-logo"><img src="'+state.company.logoUrl+'" alt="logo"/></div>';
@@ -1792,69 +1331,8 @@ Object.assign(window.CGA, {
     saveState(); toast(t("settingsSaved"),"success"); render();
   },
 
-  /* Share / Export */
-  downloadBlob: function(blob, filename){
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url; a.download = filename; a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function(){
-      if(a.parentNode) a.parentNode.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 4000);
-  },
-  exportPdf: function(id){
-    var q = state.quotations.find(function(x){return x.id===id;});
-    if(!q) return;
-    toast(t("generatingPdf"),"success");
-    generateQuotationPdfBlob(id).then(function(blob){
-      var filename = (q.number||"quotation").replace(/[^A-Za-z0-9_-]+/g,"_")+".pdf";
-      window.CGA.downloadBlob(blob, filename);
-    }).catch(function(err){
-      console.error(err);
-      toast(t("pdfGenerationFailed"),"error");
-    });
-  },
-  shareWhatsapp: function(id){
-    var q = state.quotations.find(function(x){return x.id===id;});
-    if(!q) return;
-    var customer = state.customers.find(function(c){return c.id===q.customerId;});
-    var totals = computeQuotationTotals(q);
-    var msg = t("quotation")+" "+q.number+" \u2014 "+q.customerName+" \u2014 "+formatCurrency(totals.grandTotal,q.currency,state.settings.language);
-    var phone = customer && customer.phone ? customer.phone.replace(/[^0-9]/g,"") : "";
-    var filename = (q.number||"quotation").replace(/[^A-Za-z0-9_-]+/g,"_")+".pdf";
-    var waUrl = "https://wa.me/"+phone+"?text="+encodeURIComponent(msg);
-
-    toast(t("generatingPdf"),"success");
-    generateQuotationPdfBlob(id).then(function(blob){
-      var file;
-      try{ file = new File([blob], filename, {type:"application/pdf"}); }catch(e){ file = null; }
-
-      if(file && navigator.canShare && navigator.share && navigator.canShare({files:[file]})){
-        navigator.share({files:[file], title:msg, text:msg}).catch(function(err){
-          if(err && err.name === "AbortError") return; /* user cancelled the native share sheet */
-          console.error(err);
-          window.CGA.downloadBlob(blob, filename);
-          toast(t("pdfShareFallback"),"success");
-          window.open(waUrl, "_blank");
-        });
-        return;
-      }
-
-      /* Browser can't attach files directly to WhatsApp from here (older
-         Safari / desktop browsers without the Web Share File API): save
-         the real PDF locally, then open WhatsApp so it can be attached
-         manually - this is the most reliable fallback iOS/desktop allow. */
-      window.CGA.downloadBlob(blob, filename);
-      toast(t("pdfShareFallback"),"success");
-      window.open(waUrl, "_blank");
-    }).catch(function(err){
-      console.error(err);
-      toast(t("pdfGenerationFailed"),"error");
-      window.open(waUrl, "_blank");
-    });
-  }
+  /* Print (liquid auto-fit) */
+  printQuotation: printQuotation
 });
 
 /* Lightweight re-render that preserves scroll + focus for text inputs (used for live search/typing) */

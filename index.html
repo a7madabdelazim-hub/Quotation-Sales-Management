@@ -69,7 +69,7 @@ button{cursor:pointer}
 .sidebar-footer .ver{color:var(--primary);font-weight:600}
 
 /* ---------- Header ---------- */
-.topheader{position:sticky;top:0;z-index:30;background:color-mix(in oklab,var(--background) 80%,transparent);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding-top:max(env(safe-area-inset-top),0px)}
+.topheader{position:sticky;top:0;z-index:30;background:color-mix(in oklab,var(--background) 80%,transparent);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
 .topheader-in{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:56px;gap:12px}
 @media (min-width:768px){.topheader-in{padding:0 24px;height:64px}}
 .topheader-left{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
@@ -167,42 +167,9 @@ td{padding:10px 12px;border-bottom:1px solid var(--border)}
 @media print{
   body *{visibility:hidden}
   .print-area,.print-area *{visibility:visible}
+  .print-area{position:absolute;top:0;left:0;width:100%}
   .no-print{display:none!important}
-  /* The app shell (sidebar/header/bottom-nav) is only visibility:hidden, so it
-     still reserves its full on-screen box (sidebar alone is height:100vh) -
-     that reserved space, not the quotation itself, is what was pushing the
-     print job onto a second page. Collapsing it here (print-only) fixes it
-     without touching how anything looks on screen or in the preview. */
-  .sidebar{display:none!important}
-  .topheader{display:none!important}
-  .bottomnav{display:none!important}
-  .app-shell{min-height:0!important}
-  .main-col{min-height:0!important}
-  .quote-preview-shell{min-height:0!important}
-  /* @page margin:0 stops Chrome/Edge from drawing their default header/footer
-     (page title, file:// URL, date, page numbers). A similar paper margin is
-     re-created below via print-only padding on .print-area, so the printed
-     page keeps essentially the same whitespace as before. */
-  .print-area{padding:10mm!important;box-sizing:border-box}
-  @page{size:A4;margin:0}
-  /* Extra safety margin so the document reliably fits one A4 page: this only
-     tightens spacing between sections for the printed/PDF output specifically
-     (scoped to @media print) - no color, border, or font-size is touched, and
-     the on-screen preview is completely unaffected. */
-  .print-doc-body{padding:16px!important}
-  .print-doc-header{padding-bottom:12px!important;margin-bottom:12px!important}
-  .print-doc-logo{height:48px!important;width:48px!important}
-  .print-doc-badge{padding:5px 14px!important}
-  .print-doc-meta{padding:10px 0!important}
-  .print-doc table th{padding:5px 8px!important}
-  .print-doc table td{padding:6px 8px!important}
-  .print-doc-totalswrap{margin-top:10px!important}
-  .print-doc-totals-box{padding:10px 12px!important}
-  .print-doc-grandtotal{padding:8px 12px!important;margin-top:6px!important}
-  .print-doc-notes{margin-top:14px!important;padding-top:10px!important}
-  .print-doc-sig{margin-top:16px!important;padding-top:10px!important}
-  .print-doc-sig-line{height:36px!important}
-  .print-doc-footer{margin:12px -16px -16px!important;padding:10px 16px!important}
+  @page{size:A4;margin:12mm}
 }
 .print-doc{background:var(--card);border-radius:24px;border:1px solid var(--border);padding:0;overflow:hidden;box-shadow:0 20px 50px -20px #0a254040,0 2px 8px #0a254014;position:relative}
 .print-doc-topbar{height:8px;background:linear-gradient(90deg,#0a2540 0%,#0f3d63 35%,#007aff 75%,#4fc3f7 100%)}
@@ -237,8 +204,8 @@ var LOGO_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAfQAAADACAYAA
 
 /* ---------------- Translations (full, from original app) ---------------- */
 var T = {
-en:{appName:"Century Gate",appTagline:"Quotation & Sales Management",dashboard:"Dashboard",customers:"Customers",quotations:"Quotations",history:"History",settings:"Settings",newQuotation:"New Quotation",todaysQuotations:"Today's Quotations",monthlySalesTotal:"Monthly Sales Total",pendingQuotations:"Pending Quotations",productionStatus:"Production Status",quickActions:"Quick Actions",recentQuotations:"Recent Quotations",monthlyTrend:"Monthly Trend",viewAll:"View All",noQuotationsToday:"No quotations created today",noPendingQuotations:"No pending quotations",totalQuotations:"Total Quotations",accepted:"Accepted",conversionRate:"Conversion Rate",not_started:"Not Started",in_production:"In Production",ready:"Ready",delivered:"Delivered",draft:"Draft",sent:"Sent",acceptedStatus:"Accepted",rejected:"Rejected",expired:"Expired",invoiced:"Invoiced",addCustomer:"Add Customer",editCustomer:"Edit Customer",customerCode:"Customer Code",customerName:"Customer Name (EN)",customerNameAr:"Customer Name (AR)",contactPerson:"Contact Person",vatNumber:"VAT Number",billingAddress:"Billing Address",deliveryAddress:"Delivery Address",searchCustomers:"Search customers...",noCustomers:"No customers yet",noCustomersDesc:"Add your first customer to start creating quotations",customerHistory:"Customer History",totalQuotationsForCustomer:"Total Quotations",totalValue:"Total Value",lastQuotation:"Last Quotation",quotationNumber:"Quotation Number",quotationDate:"Quotation Date",validUntil:"Valid Until",selectCustomer:"Select Customer",addLineItem:"Add Line Item",addLine:"Add Line",updateLine:"Update Line",description:"Description",descriptionPlaceholder:"e.g., 3D Illuminated Channel Letter Sign",clicheCost:"Cliché Cost",clicheCostHint:"One-time setup cost (not multiplied by qty)",quantity:"Qty",unitPrice:"Unit Price",discount:"Disc. %",lineTotal:"Line Total",subtotal:"Subtotal",globalDiscount:"Global Discount %",vat:"VAT",vatAmount:"VAT Amount",deliveryCharge:"Delivery Charge",grandTotal:"Grand Total",notes:"Notes",termsConditions:"Terms & Conditions",addNote:"Add a note...",saveDraft:"Save Draft",saveAndPreview:"Save & Preview",cancel:"Cancel",save:"Save",delete:"Delete",edit:"Edit",duplicate:"Duplicate",preview:"Preview",print:"Print",exportPdf:"Export PDF",shareEmail:"Share via Email",shareWhatsapp:"Share via WhatsApp",noItems:"No items added yet",noItemsDesc:"Click 'Add Line Item' to start building your quotation",remove:"Remove",actions:"Actions",searchByNumber:"Search by quotation #...",searchByCustomer:"Search by customer...",searchByDate:"Search by date",from:"From",to:"To",allStatuses:"All Statuses",noHistory:"No quotations found",noHistoryDesc:"Try adjusting your search filters",duplicateQuotation:"Duplicate",editAndExport:"Edit & Re-export",date:"Date",customer:"Customer",status:"Status",amount:"Amount",companyProfile:"Company Profile",companyNameEn:"Company Name (EN)",companyNameAr:"Company Name (AR)",companyVat:"VAT Number",companyAddress:"Address",companyCity:"City",companyCountry:"Country",companyPhone:"Phone",companyFax:"Fax",companyMobile:"Mobile",companyEmail:"Email",companyWebsite:"Website",companyLogo:"Company Logo",companySignature:"Authorized Signature",signatureNote:"This signature appears fixed on every quotation",vatRate:"Default VAT Rate",currency:"Currency",defaultCurrency:"Default Currency",paymentTerms:"Default Payment Terms",quotationValidity:"Default Quotation Validity (days)",quotationPrefixLabel:"Quotation Number Prefix",language:"Language",theme:"Theme",light:"Light",dark:"Dark",english:"English",arabic:"العربية",saveSettings:"Save Settings",settingsSaved:"Settings saved successfully",quotation:"QUOTATION",validUntilDate:"Valid Until",paymentTermsLabel:"Payment Terms",authorizedBy:"Authorized By",customerSignature:"Customer Signature",thankYou:"Thank you for your business",scanToVerify:"Scan to verify",confirm:"Confirm",yes:"Yes",no:"No",confirmDelete:"Are you sure you want to delete this?",deleteCustomer:"Delete Customer",deleteQuotation:"Delete Quotation",required:"Required",optional:"Optional",today:"Today",sar:"SAR",items:"items",item:"item",unit:"Unit",uploadLogo:"Upload Logo",uploadSignature:"Upload Signature",resetSeed:"Reset Demo Data",statusUpdated:"Status updated",quoteDuplicated:"Quotation duplicated",quoteDeleted:"Quotation deleted",quoteSaved:"Quotation saved",quoteUpdated:"Quotation updated",selectCustomerFirst:"Please select a customer",addOneItem:"Add at least one line item",quotationNotFound:"Quotation not found.",backToHistory:"Back to history",pcs:"PCS",ctn:"CTN",m:"meter",kg:"kg",set:"set",box:"box",liter:"liter",hour:"hour",sqm:"sqm"},
-ar:{appName:"سينشوري جيت",appTagline:"إدارة عروض الأسعار والمبيعات",dashboard:"لوحة التحكم",customers:"العملاء",quotations:"عروض الأسعار",history:"السجل",settings:"الإعدادات",newQuotation:"عرض سعر جديد",todaysQuotations:"عروض اليوم",monthlySalesTotal:"إجمالي مبيعات الشهر",pendingQuotations:"عروض معلقة",productionStatus:"حالة الإنتاج",quickActions:"إجراءات سريعة",recentQuotations:"أحدث العروض",monthlyTrend:"الاتجاه الشهري",viewAll:"عرض الكل",noQuotationsToday:"لا توجد عروض أسعار اليوم",noPendingQuotations:"لا توجد عروض معلقة",totalQuotations:"إجمالي العروض",accepted:"مقبولة",conversionRate:"معدل التحويل",not_started:"لم يبدأ",in_production:"قيد الإنتاج",ready:"جاهز",delivered:"تم التسليم",draft:"مسودة",sent:"مرسل",acceptedStatus:"مقبول",rejected:"مرفوض",expired:"منتهي",invoiced:"مفوتر",addCustomer:"إضافة عميل",editCustomer:"تعديل العميل",customerCode:"رمز العميل",customerName:"اسم العميل (إنجليزي)",customerNameAr:"اسم العميل (عربي)",contactPerson:"مسؤول الاتصال",vatNumber:"الرقم الضريبي",billingAddress:"عنوان الفاتورة",deliveryAddress:"عنوان التسليم",searchCustomers:"ابحث عن العملاء...",noCustomers:"لا يوجد عملاء بعد",noCustomersDesc:"أضف أول عميل لبدء إنشاء عروض الأسعار",customerHistory:"سجل العميل",totalQuotationsForCustomer:"إجمالي العروض",totalValue:"إجمالي القيمة",lastQuotation:"آخر عرض",quotationNumber:"رقم عرض السعر",quotationDate:"تاريخ عرض السعر",validUntil:"صالح حتى",selectCustomer:"اختر العميل",addLineItem:"إضافة بند",addLine:"إضافة",updateLine:"تحديث البند",description:"الوصف",descriptionPlaceholder:"مثال: لوحة أحرف بارزة مضيئة",clicheCost:"تكلفة الكليشيه",clicheCostHint:"تكلفة إعداد لمرة واحدة (لا تضرب بالكمية)",quantity:"الكمية",unitPrice:"سعر الوحدة",discount:"خصم %",lineTotal:"إجمالي البند",subtotal:"المجموع الفرعي",globalDiscount:"خصم عام %",vat:"ضريبة القيمة المضافة",vatAmount:"قيمة الضريبة",deliveryCharge:"رسوم التسليم",grandTotal:"الإجمالي الكلي",notes:"ملاحظات",termsConditions:"الشروط والأحكام",addNote:"أضف ملاحظة...",saveDraft:"حفظ كمسودة",saveAndPreview:"حفظ ومعاينة",cancel:"إلغاء",save:"حفظ",delete:"حذف",edit:"تعديل",duplicate:"نسخ",preview:"معاينة",print:"طباعة",exportPdf:"تصدير PDF",shareEmail:"مشاركة عبر البريد",shareWhatsapp:"مشاركة عبر واتساب",noItems:"لم تتم إضافة بنود بعد",noItemsDesc:"اضغط على 'إضافة بند' لبدء إنشاء عرض السعر",remove:"إزالة",actions:"إجراءات",searchByNumber:"ابحث برقم العرض...",searchByCustomer:"ابحث باسم العميل...",searchByDate:"ابحث بالتاريخ",from:"من",to:"إلى",allStatuses:"جميع الحالات",noHistory:"لا توجد عروض أسعار",noHistoryDesc:"حاول تعديل معايير البحث",duplicateQuotation:"نسخ",editAndExport:"تعديل وإعادة تصدير",date:"التاريخ",customer:"العميل",status:"الحالة",amount:"المبلغ",companyProfile:"ملف الشركة",companyNameEn:"اسم الشركة (إنجليزي)",companyNameAr:"اسم الشركة (عربي)",companyVat:"الرقم الضريبي",companyAddress:"العنوان",companyCity:"المدينة",companyCountry:"الدولة",companyPhone:"الهاتف",companyFax:"الفاكس",companyMobile:"الجوال",companyEmail:"البريد الإلكتروني",companyWebsite:"الموقع الإلكتروني",companyLogo:"شعار الشركة",companySignature:"التوقيع المعتمد",signatureNote:"يظهر هذا التوقيع ثابتاً على كل عرض سعر",vatRate:"نسبة الضريبة الافتراضية",currency:"العملة",defaultCurrency:"العملة الافتراضية",paymentTerms:"شروط الدفع الافتراضية",quotationValidity:"صلاحية العرض الافتراضية (أيام)",quotationPrefixLabel:"بادئة رقم العرض",language:"اللغة",theme:"المظهر",light:"فاتح",dark:"داكن",english:"English",arabic:"العربية",saveSettings:"حفظ الإعدادات",settingsSaved:"تم حفظ الإعدادات بنجاح",quotation:"عرض سعر",validUntilDate:"صالح حتى",paymentTermsLabel:"شروط الدفع",authorizedBy:"اعتماد",customerSignature:"توقيع العميل",thankYou:"شكراً لتعاملكم معنا",scanToVerify:"امسح للتحقق",confirm:"تأكيد",yes:"نعم",no:"لا",confirmDelete:"هل أنت متأكد من الحذف؟",deleteCustomer:"حذف العميل",deleteQuotation:"حذف العرض",required:"مطلوب",optional:"اختياري",today:"اليوم",sar:"ريال",items:"بنود",item:"بند",unit:"الوحدة",uploadLogo:"رفع شعار",uploadSignature:"رفع توقيع",resetSeed:"إعادة تعيين البيانات التجريبية",statusUpdated:"تم تحديث الحالة",quoteDuplicated:"تم نسخ عرض السعر",quoteDeleted:"تم حذف عرض السعر",quoteSaved:"تم حفظ عرض السعر",quoteUpdated:"تم تحديث عرض السعر",selectCustomerFirst:"الرجاء اختيار العميل",addOneItem:"أضف بنداً واحداً على الأقل",quotationNotFound:"عرض السعر غير موجود.",backToHistory:"العودة إلى السجل",pcs:"قطعة",ctn:"كرتونة",m:"متر",kg:"كجم",set:"طقم",box:"صندوق",liter:"لتر",hour:"ساعة",sqm:"م²"}
+en:{appName:"Century Gate",appTagline:"Quotation & Sales Management",dashboard:"Dashboard",customers:"Customers",quotations:"Quotations",history:"History",settings:"Settings",newQuotation:"New Quotation",todaysQuotations:"Today's Quotations",monthlySalesTotal:"Monthly Sales Total",pendingQuotations:"Pending Quotations",productionStatus:"Production Status",quickActions:"Quick Actions",recentQuotations:"Recent Quotations",monthlyTrend:"Monthly Trend",viewAll:"View All",noQuotationsToday:"No quotations created today",noPendingQuotations:"No pending quotations",totalQuotations:"Total Quotations",accepted:"Accepted",conversionRate:"Conversion Rate",not_started:"Not Started",in_production:"In Production",ready:"Ready",delivered:"Delivered",draft:"Draft",sent:"Sent",acceptedStatus:"Accepted",rejected:"Rejected",expired:"Expired",invoiced:"Invoiced",addCustomer:"Add Customer",editCustomer:"Edit Customer",customerCode:"Customer Code",customerName:"Customer Name (EN)",customerNameAr:"Customer Name (AR)",contactPerson:"Contact Person",vatNumber:"VAT Number",billingAddress:"Billing Address",deliveryAddress:"Delivery Address",searchCustomers:"Search customers...",noCustomers:"No customers yet",noCustomersDesc:"Add your first customer to start creating quotations",customerHistory:"Customer History",totalQuotationsForCustomer:"Total Quotations",totalValue:"Total Value",lastQuotation:"Last Quotation",quotationNumber:"Quotation Number",quotationDate:"Quotation Date",validUntil:"Valid Until",selectCustomer:"Select Customer",addLineItem:"Add Line Item",addLine:"Add Line",description:"Description",descriptionPlaceholder:"e.g., 3D Illuminated Channel Letter Sign",clicheCost:"Cliché Cost",clicheCostHint:"One-time setup cost (not multiplied by qty)",quantity:"Qty",unitPrice:"Unit Price",discount:"Disc. %",lineTotal:"Line Total",subtotal:"Subtotal",globalDiscount:"Global Discount %",vat:"VAT",vatAmount:"VAT Amount",deliveryCharge:"Delivery Charge",grandTotal:"Grand Total",notes:"Notes",termsConditions:"Terms & Conditions",addNote:"Add a note...",saveDraft:"Save Draft",saveAndPreview:"Save & Preview",cancel:"Cancel",save:"Save",delete:"Delete",edit:"Edit",duplicate:"Duplicate",preview:"Preview",print:"Print",exportPdf:"Export PDF",shareEmail:"Share via Email",shareWhatsapp:"Share via WhatsApp",noItems:"No items added yet",noItemsDesc:"Click 'Add Line Item' to start building your quotation",remove:"Remove",actions:"Actions",searchByNumber:"Search by quotation #...",searchByCustomer:"Search by customer...",searchByDate:"Search by date",from:"From",to:"To",allStatuses:"All Statuses",noHistory:"No quotations found",noHistoryDesc:"Try adjusting your search filters",duplicateQuotation:"Duplicate",editAndExport:"Edit & Re-export",date:"Date",customer:"Customer",status:"Status",amount:"Amount",companyProfile:"Company Profile",companyNameEn:"Company Name (EN)",companyNameAr:"Company Name (AR)",companyVat:"VAT Number",companyAddress:"Address",companyCity:"City",companyCountry:"Country",companyPhone:"Phone",companyFax:"Fax",companyMobile:"Mobile",companyEmail:"Email",companyWebsite:"Website",companyLogo:"Company Logo",companySignature:"Authorized Signature",signatureNote:"This signature appears fixed on every quotation",vatRate:"Default VAT Rate",currency:"Currency",defaultCurrency:"Default Currency",paymentTerms:"Default Payment Terms",quotationValidity:"Default Quotation Validity (days)",quotationPrefixLabel:"Quotation Number Prefix",language:"Language",theme:"Theme",light:"Light",dark:"Dark",english:"English",arabic:"العربية",saveSettings:"Save Settings",settingsSaved:"Settings saved successfully",quotation:"QUOTATION",validUntilDate:"Valid Until",paymentTermsLabel:"Payment Terms",authorizedBy:"Authorized By",customerSignature:"Customer Signature",thankYou:"Thank you for your business",scanToVerify:"Scan to verify",confirm:"Confirm",yes:"Yes",no:"No",confirmDelete:"Are you sure you want to delete this?",deleteCustomer:"Delete Customer",deleteQuotation:"Delete Quotation",required:"Required",optional:"Optional",today:"Today",sar:"SAR",items:"items",item:"item",unit:"Unit",uploadLogo:"Upload Logo",uploadSignature:"Upload Signature",resetSeed:"Reset Demo Data",statusUpdated:"Status updated",quoteDuplicated:"Quotation duplicated",quoteDeleted:"Quotation deleted",quoteSaved:"Quotation saved",quoteUpdated:"Quotation updated",selectCustomerFirst:"Please select a customer",addOneItem:"Add at least one line item",quotationNotFound:"Quotation not found.",backToHistory:"Back to history",pcs:"PCS",ctn:"CTN",m:"meter",kg:"kg",set:"set",box:"box",liter:"liter",hour:"hour",sqm:"sqm"},
+ar:{appName:"سينشوري جيت",appTagline:"إدارة عروض الأسعار والمبيعات",dashboard:"لوحة التحكم",customers:"العملاء",quotations:"عروض الأسعار",history:"السجل",settings:"الإعدادات",newQuotation:"عرض سعر جديد",todaysQuotations:"عروض اليوم",monthlySalesTotal:"إجمالي مبيعات الشهر",pendingQuotations:"عروض معلقة",productionStatus:"حالة الإنتاج",quickActions:"إجراءات سريعة",recentQuotations:"أحدث العروض",monthlyTrend:"الاتجاه الشهري",viewAll:"عرض الكل",noQuotationsToday:"لا توجد عروض أسعار اليوم",noPendingQuotations:"لا توجد عروض معلقة",totalQuotations:"إجمالي العروض",accepted:"مقبولة",conversionRate:"معدل التحويل",not_started:"لم يبدأ",in_production:"قيد الإنتاج",ready:"جاهز",delivered:"تم التسليم",draft:"مسودة",sent:"مرسل",acceptedStatus:"مقبول",rejected:"مرفوض",expired:"منتهي",invoiced:"مفوتر",addCustomer:"إضافة عميل",editCustomer:"تعديل العميل",customerCode:"رمز العميل",customerName:"اسم العميل (إنجليزي)",customerNameAr:"اسم العميل (عربي)",contactPerson:"مسؤول الاتصال",vatNumber:"الرقم الضريبي",billingAddress:"عنوان الفاتورة",deliveryAddress:"عنوان التسليم",searchCustomers:"ابحث عن العملاء...",noCustomers:"لا يوجد عملاء بعد",noCustomersDesc:"أضف أول عميل لبدء إنشاء عروض الأسعار",customerHistory:"سجل العميل",totalQuotationsForCustomer:"إجمالي العروض",totalValue:"إجمالي القيمة",lastQuotation:"آخر عرض",quotationNumber:"رقم عرض السعر",quotationDate:"تاريخ عرض السعر",validUntil:"صالح حتى",selectCustomer:"اختر العميل",addLineItem:"إضافة بند",addLine:"إضافة",description:"الوصف",descriptionPlaceholder:"مثال: لوحة أحرف بارزة مضيئة",clicheCost:"تكلفة الكليشيه",clicheCostHint:"تكلفة إعداد لمرة واحدة (لا تضرب بالكمية)",quantity:"الكمية",unitPrice:"سعر الوحدة",discount:"خصم %",lineTotal:"إجمالي البند",subtotal:"المجموع الفرعي",globalDiscount:"خصم عام %",vat:"ضريبة القيمة المضافة",vatAmount:"قيمة الضريبة",deliveryCharge:"رسوم التسليم",grandTotal:"الإجمالي الكلي",notes:"ملاحظات",termsConditions:"الشروط والأحكام",addNote:"أضف ملاحظة...",saveDraft:"حفظ كمسودة",saveAndPreview:"حفظ ومعاينة",cancel:"إلغاء",save:"حفظ",delete:"حذف",edit:"تعديل",duplicate:"نسخ",preview:"معاينة",print:"طباعة",exportPdf:"تصدير PDF",shareEmail:"مشاركة عبر البريد",shareWhatsapp:"مشاركة عبر واتساب",noItems:"لم تتم إضافة بنود بعد",noItemsDesc:"اضغط على 'إضافة بند' لبدء إنشاء عرض السعر",remove:"إزالة",actions:"إجراءات",searchByNumber:"ابحث برقم العرض...",searchByCustomer:"ابحث باسم العميل...",searchByDate:"ابحث بالتاريخ",from:"من",to:"إلى",allStatuses:"جميع الحالات",noHistory:"لا توجد عروض أسعار",noHistoryDesc:"حاول تعديل معايير البحث",duplicateQuotation:"نسخ",editAndExport:"تعديل وإعادة تصدير",date:"التاريخ",customer:"العميل",status:"الحالة",amount:"المبلغ",companyProfile:"ملف الشركة",companyNameEn:"اسم الشركة (إنجليزي)",companyNameAr:"اسم الشركة (عربي)",companyVat:"الرقم الضريبي",companyAddress:"العنوان",companyCity:"المدينة",companyCountry:"الدولة",companyPhone:"الهاتف",companyFax:"الفاكس",companyMobile:"الجوال",companyEmail:"البريد الإلكتروني",companyWebsite:"الموقع الإلكتروني",companyLogo:"شعار الشركة",companySignature:"التوقيع المعتمد",signatureNote:"يظهر هذا التوقيع ثابتاً على كل عرض سعر",vatRate:"نسبة الضريبة الافتراضية",currency:"العملة",defaultCurrency:"العملة الافتراضية",paymentTerms:"شروط الدفع الافتراضية",quotationValidity:"صلاحية العرض الافتراضية (أيام)",quotationPrefixLabel:"بادئة رقم العرض",language:"اللغة",theme:"المظهر",light:"فاتح",dark:"داكن",english:"English",arabic:"العربية",saveSettings:"حفظ الإعدادات",settingsSaved:"تم حفظ الإعدادات بنجاح",quotation:"عرض سعر",validUntilDate:"صالح حتى",paymentTermsLabel:"شروط الدفع",authorizedBy:"اعتماد",customerSignature:"توقيع العميل",thankYou:"شكراً لتعاملكم معنا",scanToVerify:"امسح للتحقق",confirm:"تأكيد",yes:"نعم",no:"لا",confirmDelete:"هل أنت متأكد من الحذف؟",deleteCustomer:"حذف العميل",deleteQuotation:"حذف العرض",required:"مطلوب",optional:"اختياري",today:"اليوم",sar:"ريال",items:"بنود",item:"بند",unit:"الوحدة",uploadLogo:"رفع شعار",uploadSignature:"رفع توقيع",resetSeed:"إعادة تعيين البيانات التجريبية",statusUpdated:"تم تحديث الحالة",quoteDuplicated:"تم نسخ عرض السعر",quoteDeleted:"تم حذف عرض السعر",quoteSaved:"تم حفظ عرض السعر",quoteUpdated:"تم تحديث عرض السعر",selectCustomerFirst:"الرجاء اختيار العميل",addOneItem:"أضف بنداً واحداً على الأقل",quotationNotFound:"عرض السعر غير موجود.",backToHistory:"العودة إلى السجل",pcs:"قطعة",ctn:"كرتونة",m:"متر",kg:"كجم",set:"طقم",box:"صندوق",liter:"لتر",hour:"ساعة",sqm:"م²"}
 };
 function t(key){ var lang = state.settings.language; return (T[lang] && T[lang][key]) || T.en[key] || key; }
 
@@ -335,26 +302,6 @@ function generateQuotationNumber(){
 }
 function escapeHtml(s){
   return String(s==null?"":s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; });
-}
-
-/* ---------------- Auto-capitalization (manual text entries) ----------------
-   Capitalizes the first letter of every word as the user types. It only
-   ever changes lowercase->uppercase (never removes/adds characters), so the
-   string length never changes and the cursor position can be preserved
-   exactly - no need to recompute selection offsets. */
-function autoCapValue(v){
-  if(!v) return v;
-  return v.replace(/(^|[\s\-\/])([a-z])/g, function(m,p1,p2){ return p1+p2.toUpperCase(); });
-}
-function applyAutoCap(el){
-  var v = el.value;
-  var capped = autoCapValue(v);
-  if(capped !== v){
-    var s = el.selectionStart, e = el.selectionEnd;
-    el.value = capped;
-    try{ el.setSelectionRange(s,e); }catch(err){}
-  }
-  return el.value;
 }
 
 /* ---------------- Toasts ---------------- */
@@ -671,13 +618,13 @@ function renderCustomerModal(){
   html += '<div class="space-y">';
   html += '<div class="grid2"><div class="field"><label>'+t("customerCode")+'</label><input class="input mono" value="'+escapeHtml(f.code)+'" oninput="CGA.custForm(\'code\',this.value)"/></div>';
   html += '<div class="field"><label>'+t("vatNumber")+'</label><input class="input mono" inputmode="numeric" pattern="[0-9]*" maxlength="15" value="'+escapeHtml(f.vatNumber)+'" oninput="CGA.custFormDigits(\'vatNumber\',this,15)"/></div></div>';
-  html += '<div class="field"><label>'+t("customerName")+'</label><input class="input" value="'+escapeHtml(f.nameEn)+'" oninput="CGA.custFormCap(\'nameEn\',this)"/></div>';
+  html += '<div class="field"><label>'+t("customerName")+'</label><input class="input" value="'+escapeHtml(f.nameEn)+'" oninput="CGA.custForm(\'nameEn\',this.value)"/></div>';
   html += '<div class="field"><label>'+t("customerNameAr")+'</label><input class="input" dir="rtl" value="'+escapeHtml(f.nameAr)+'" oninput="CGA.custForm(\'nameAr\',this.value)"/></div>';
-  html += '<div class="grid2"><div class="field"><label>'+t("contactPerson")+'</label><input class="input" value="'+escapeHtml(f.contactPerson)+'" oninput="CGA.custFormCap(\'contactPerson\',this)"/></div>';
+  html += '<div class="grid2"><div class="field"><label>'+t("contactPerson")+'</label><input class="input" value="'+escapeHtml(f.contactPerson)+'" oninput="CGA.custForm(\'contactPerson\',this.value)"/></div>';
   html += '<div class="field"><label>'+t("companyPhone")+'</label><input class="input" type="tel" inputmode="tel" value="'+escapeHtml(f.phone)+'" oninput="CGA.custForm(\'phone\',this.value)"/></div></div>';
   html += '<div class="field"><label>'+t("companyEmail")+'</label><input class="input" type="email" value="'+escapeHtml(f.email)+'" oninput="CGA.custForm(\'email\',this.value)"/></div>';
-  html += '<div class="field"><label>'+t("billingAddress")+'</label><textarea class="input" oninput="CGA.custFormCap(\'billingAddress\',this)">'+escapeHtml(f.billingAddress)+'</textarea></div>';
-  html += '<div class="field"><label>'+t("deliveryAddress")+' ('+t("optional")+')</label><textarea class="input" oninput="CGA.custFormCap(\'deliveryAddress\',this)">'+escapeHtml(f.deliveryAddress)+'</textarea></div>';
+  html += '<div class="field"><label>'+t("billingAddress")+'</label><textarea class="input" oninput="CGA.custForm(\'billingAddress\',this.value)">'+escapeHtml(f.billingAddress)+'</textarea></div>';
+  html += '<div class="field"><label>'+t("deliveryAddress")+' ('+t("optional")+')</label><textarea class="input" oninput="CGA.custForm(\'deliveryAddress\',this.value)">'+escapeHtml(f.deliveryAddress)+'</textarea></div>';
   html += '</div>';
   html += '<div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">';
   html += '<button class="btn btn-outline" onclick="CGA.closeCustomerModal()">'+t("cancel")+'</button>';
@@ -760,8 +707,7 @@ function freshBuilderState(){
     deliveryCharge:0,
     notes:"",
     termsConditions: s.defaultTermsConditions,
-    draftItem: {description:"",qty:1,unit:"PCS",unitPrice:0,clicheCost:0,discountPercent:0},
-    editingItemIndex: null
+    draftItem: {description:"",qty:1,unit:"PCS",unitPrice:0,clicheCost:0,discountPercent:0}
   };
 }
 function ensureBuilder(){ if(!builderState) builderState = freshBuilderState(); }
@@ -773,8 +719,7 @@ function loadQuotationIntoBuilder(id){
     editId:id, number:q.number, customerId:q.customerId, date:q.date.slice(0,10), validUntil:q.validUntil.slice(0,10),
     currency:q.currency, items:q.items.slice(), globalDiscountPercent:q.globalDiscountPercent, vatRate:q.vatRate,
     deliveryCharge:q.deliveryCharge, notes:q.notes, termsConditions:q.termsConditions,
-    draftItem:{description:"",qty:1,unit:"PCS",unitPrice:0,clicheCost:0,discountPercent:0},
-    editingItemIndex: null
+    draftItem:{description:"",qty:1,unit:"PCS",unitPrice:0,clicheCost:0,discountPercent:0}
   };
 }
 
@@ -821,25 +766,17 @@ function renderBuilder(){
   } else {
     b.items.forEach(function(it,idx){
       var lineTotal = computeLineTotal(it);
-      var isEditingThis = b.editingItemIndex === idx;
-      html += '<div class="line-item-row"'+(isEditingThis?' style="border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)"':'')+'><div style="display:flex;justify-content:space-between;gap:8px"><div style="font-weight:600;flex:1">'+escapeHtml(it.description||"—")+'</div>';
-      html += '<div style="display:flex;gap:6px;flex-shrink:0">';
-      html += '<button class="btn btn-neu btn-icon" style="width:26px;height:26px;padding:0" onclick="CGA.editLineItem('+idx+')" title="'+t("edit")+'">'+ICONS.edit+'</button>';
-      html += '<button class="btn btn-neu btn-icon btn-danger" style="width:26px;height:26px;padding:0" onclick="CGA.removeLineItem('+idx+')" title="'+t("delete")+'">'+ICONS.trash+'</button>';
-      html += '</div></div>';
+      html += '<div class="line-item-row"><div style="display:flex;justify-content:space-between;gap:8px"><div style="font-weight:600;flex:1">'+escapeHtml(it.description||"—")+'</div>';
+      html += '<button class="btn btn-neu btn-icon btn-danger" style="width:26px;height:26px;padding:0;flex-shrink:0" onclick="CGA.removeLineItem('+idx+')">'+ICONS.trash+'</button></div>';
       html += '<div class="small muted" style="margin-top:4px">'+it.qty+' '+unitLabel(it.unit)+' × '+formatCurrency(it.unitPrice,b.currency,lang)+
         (it.discountPercent>0 ? (' • '+t("discount")+' '+it.discountPercent+'%') : '') +
         (it.clicheCost>0 ? (' • '+t("clicheCost")+' '+formatCurrency(it.clicheCost,b.currency,lang)) : '') +
         ' • <b>'+formatCurrency(lineTotal,b.currency,lang)+'</b></div></div>';
     });
   }
-  // add-line / edit-line form
-  var isEditingItem = b.editingItemIndex !== null;
-  html += '<div class="line-item-row" style="background:var(--muted);border-style:dashed'+(isEditingItem?';border-color:var(--primary)':'')+'">';
-  if(isEditingItem){
-    html += '<div class="small" style="color:var(--primary);font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px">'+ICONS.edit+' '+t("edit")+' '+t("item")+'</div>';
-  }
-  html += '<div class="field" style="margin-bottom:8px"><label>'+t("description")+'</label><input data-fk="draft.description" class="input" placeholder="'+t("descriptionPlaceholder")+'" value="'+escapeHtml(b.draftItem.description)+'" oninput="CGA.draftDescCap(this)"/></div>';
+  // add-line form
+  html += '<div class="line-item-row" style="background:var(--muted);border-style:dashed">';
+  html += '<div class="field" style="margin-bottom:8px"><label>'+t("description")+'</label><input data-fk="draft.description" class="input" placeholder="'+t("descriptionPlaceholder")+'" value="'+escapeHtml(b.draftItem.description)+'" oninput="CGA.draftSet(\'description\',this.value)"/></div>';
   html += '<div class="grid3" style="margin-bottom:8px">';
   html += '<div class="field"><label>'+t("quantity")+'</label><input data-fk="draft.qty" class="input" type="number" inputmode="numeric" pattern="[0-9]*" min="0" step="1" value="'+b.draftItem.qty+'" oninput="CGA.draftSet(\'qty\',this.value)"/></div>';
   html += '<div class="field"><label>'+t("unit")+'</label><select class="input" onchange="CGA.draftSet(\'unit\',this.value)">';
@@ -854,14 +791,7 @@ function renderBuilder(){
   html += '<div class="field"><label>'+t("discount")+'</label><input data-fk="draft.discountPercent" class="input" type="number" min="0" max="100" step="1" value="'+b.draftItem.discountPercent+'" oninput="CGA.draftSet(\'discountPercent\',this.value)"/></div>';
   html += '<div class="field"><label>'+t("lineTotal")+'</label><input class="input" id="draftLineTotalDisplay" disabled value="'+formatCurrency(draftTotal,b.currency,lang)+'"/></div>';
   html += '</div>';
-  if(isEditingItem){
-    html += '<div style="display:flex;gap:8px;margin-top:10px">';
-    html += '<button class="btn btn-outline btn-block" onclick="CGA.cancelEditLineItem()">'+t("cancel")+'</button>';
-    html += '<button class="btn btn-primary btn-block" onclick="CGA.updateLineItem()">'+ICONS.edit+' '+t("updateLine")+'</button>';
-    html += '</div>';
-  } else {
-    html += '<button class="btn btn-primary btn-block" style="margin-top:10px" onclick="CGA.addLineItem()">'+ICONS.plus+' '+t("addLine")+'</button>';
-  }
+  html += '<button class="btn btn-primary btn-block" style="margin-top:10px" onclick="CGA.addLineItem()">'+ICONS.plus+' '+t("addLine")+'</button>';
   html += '</div>';
   html += '</div></div>';
 
@@ -872,7 +802,7 @@ function renderBuilder(){
   html += '<div class="field"><label>'+t("deliveryCharge")+'</label><input data-fk="builder.deliveryCharge" class="input" type="number" min="0" step="0.01" value="'+b.deliveryCharge+'" oninput="CGA.builderSet(\'deliveryCharge\',this.value)"/></div>';
   html += '</div>';
   html += '<div class="field"><label>'+t("vat")+' ('+Math.round(b.vatRate*100)+'%)</label><input data-fk="builder.vatRate" class="input" type="number" min="0" max="1" step="0.01" value="'+b.vatRate+'" oninput="CGA.builderSet(\'vatRate\',this.value)"/></div>';
-  html += '<div class="field"><label>'+t("notes")+'</label><textarea data-fk="builder.notes" class="input" placeholder="'+t("addNote")+'" oninput="CGA.builderSetCap(\'notes\',this)">'+escapeHtml(b.notes)+'</textarea></div>';
+  html += '<div class="field"><label>'+t("notes")+'</label><textarea data-fk="builder.notes" class="input" placeholder="'+t("addNote")+'" oninput="CGA.builderSet(\'notes\',this.value)">'+escapeHtml(b.notes)+'</textarea></div>';
   html += '<div class="field"><label>'+t("termsConditions")+'</label><textarea data-fk="builder.terms" class="input" style="min-height:110px" oninput="CGA.builderSet(\'termsConditions\',this.value)">'+escapeHtml(b.termsConditions)+'</textarea></div>';
   html += '<div id="builderTotalsSummary" style="border-top:1px solid var(--border);padding-top:10px;display:grid;gap:4px">'+renderBuilderTotalsInner(b,totals,lang)+'</div>';
   html += '</div></div>';
@@ -911,14 +841,14 @@ function renderSettings(){
   html += '</div>';
 
   html += '<div class="grid2">';
-  html += fld("companyNameEn","company","nameEn",f.company.nameEn,false,true);
+  html += fld("companyNameEn","company","nameEn",f.company.nameEn);
   html += fld("companyNameAr","company","nameAr",f.company.nameAr,true);
   html += '</div><div class="grid2">';
   html += fld("companyVat","company","vatNumber",f.company.vatNumber);
-  html += fld("companyAddress","company","address",f.company.address,false,true);
+  html += fld("companyAddress","company","address",f.company.address);
   html += '</div><div class="grid2">';
-  html += fld("companyCity","company","city",f.company.city,false,true);
-  html += fld("companyCountry","company","country",f.company.country,false,true);
+  html += fld("companyCity","company","city",f.company.city);
+  html += fld("companyCountry","company","country",f.company.country);
   html += '</div><div class="grid2">';
   html += fld("companyPhone","company","phone",f.company.phone);
   html += fld("companyFax","company","fax",f.company.fax);
@@ -939,7 +869,7 @@ function renderSettings(){
   html += '<div class="field"><label>'+t("quotationValidity")+'</label><input class="input" type="number" min="1" value="'+f.settings.defaultQuotationValidityDays+'" oninput="CGA.settingsSet(\'settings\',\'defaultQuotationValidityDays\',parseInt(this.value)||1)"/></div>';
   html += '<div class="field"><label>'+t("quotationPrefixLabel")+'</label><input class="input mono" value="'+escapeHtml(f.settings.quotationPrefix)+'" oninput="CGA.settingsSet(\'settings\',\'quotationPrefix\',this.value)"/></div>';
   html += '</div>';
-  html += '<div class="field"><label>'+t("paymentTerms")+'</label><input class="input" value="'+escapeHtml(f.settings.defaultPaymentTerms)+'" oninput="CGA.settingsSetCap(\'settings\',\'defaultPaymentTerms\',this)"/></div>';
+  html += '<div class="field"><label>'+t("paymentTerms")+'</label><input class="input" value="'+escapeHtml(f.settings.defaultPaymentTerms)+'" oninput="CGA.settingsSet(\'settings\',\'defaultPaymentTerms\',this.value)"/></div>';
   html += '<div class="field"><label>'+t("termsConditions")+'</label><textarea class="input" style="min-height:120px" oninput="CGA.settingsSet(\'settings\',\'defaultTermsConditions\',this.value)">'+escapeHtml(f.settings.defaultTermsConditions)+'</textarea></div>';
   html += '<div class="grid2">';
   html += '<div class="field"><label>'+t("language")+'</label><select class="input" onchange="CGA.settingsSet(\'settings\',\'language\',this.value)">';
@@ -950,11 +880,8 @@ function renderSettings(){
   html += '<button class="btn btn-primary btn-block" onclick="CGA.saveSettings()">'+t("saveSettings")+'</button>';
   html += '</div></div>';
   html += '</div>';
-  function fld(labelKey, section, key, val, rtl, cap){
-    var oninput = cap
-      ? "CGA.settingsSetCap('"+section+"','"+key+"',this)"
-      : "CGA.settingsSet('"+section+"','"+key+"',this.value)";
-    return '<div class="field"><label>'+t(labelKey)+'</label><input class="input" '+(rtl?'dir="rtl"':'')+' value="'+escapeHtml(val)+'" oninput="'+oninput+'"/></div>';
+  function fld(labelKey, section, key, val, rtl){
+    return '<div class="field"><label>'+t(labelKey)+'</label><input class="input" '+(rtl?'dir="rtl"':'')+' value="'+escapeHtml(val)+'" oninput="CGA.settingsSet(\''+section+'\',\''+key+'\',this.value)"/></div>';
   }
   return html;
 }
@@ -970,8 +897,8 @@ function renderPreview(){
   var customer = state.customers.find(function(c){return c.id===q.customerId;});
   var fc = function(v){ return formatCurrency(v,q.currency,lang); };
 
-  var html = '<div class="quote-preview-shell" style="min-height:100vh;background:var(--muted)">';
-  html += '<div class="no-print" style="position:sticky;top:calc(56px + env(safe-area-inset-top));z-index:20;background:color-mix(in oklab,var(--background) 95%,transparent);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)">';
+  var html = '<div style="min-height:100vh;background:var(--muted)">';
+  html += '<div class="no-print" style="position:sticky;top:56px;z-index:20;background:color-mix(in oklab,var(--background) 95%,transparent);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)">';
   html += '<div style="max-width:900px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
   html += '<button class="btn btn-glass btn-sm" onclick="CGA.closePreview()">'+ICONS.back+' '+t("history")+'</button><div style="flex:1"></div>';
   html += '<select class="input" style="width:auto" onchange="CGA.updateStatus(\''+q.id+'\',this.value)">';
@@ -998,7 +925,7 @@ function renderPreview(){
   html += '<div class="small muted" style="margin-top:4px">'+formatDate(q.date,lang)+'</div></div>';
   html += '</div>';
 
-  html += '<div class="grid2 print-doc-meta" style="padding:24px 0">';
+  html += '<div class="grid2" style="padding:24px 0">';
   html += '<div><div class="small muted" style="text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:8px">'+t("to")+':</div>';
   html += '<div style="font-weight:600;font-size:16px">'+escapeHtml(q.customerName)+'</div>';
   if(customer && customer.nameAr) html += '<div class="small muted" dir="rtl">'+escapeHtml(customer.nameAr)+'</div>';
@@ -1026,7 +953,7 @@ function renderPreview(){
   });
   html += '</tbody></table></div>';
 
-  html += '<div class="print-doc-totalswrap" style="display:flex;justify-content:flex-end;margin-top:20px"><div style="width:100%;max-width:340px" class="print-doc-totals-box">';
+  html += '<div style="display:flex;justify-content:flex-end;margin-top:20px"><div style="width:100%;max-width:340px" class="print-doc-totals-box">';
   html += kv(t("subtotal"), fc(totals.itemsSubtotal));
   if(q.globalDiscountPercent>0) html += kv(t("globalDiscount")+" ("+q.globalDiscountPercent+"%)", "- "+fc(totals.globalDiscountAmount));
   if(q.deliveryCharge>0) html += kv(t("deliveryCharge"), fc(totals.delivery));
@@ -1035,18 +962,18 @@ function renderPreview(){
   html += '</div></div>';
 
   if(q.notes || q.termsConditions){
-    html += '<div class="grid2 print-doc-notes" style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border)">';
+    html += '<div class="grid2" style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border)">';
     if(q.notes) html += '<div><div class="small muted" style="text-transform:uppercase;font-weight:600;margin-bottom:6px">'+t("notes")+'</div><p class="small" style="white-space:pre-wrap">'+escapeHtml(q.notes)+'</p></div>';
     if(q.termsConditions) html += '<div><div class="small muted" style="text-transform:uppercase;font-weight:600;margin-bottom:6px">'+t("termsConditions")+'</div><p class="small muted" style="white-space:pre-wrap;font-size:11px">'+escapeHtml(q.termsConditions)+'</p></div>';
     html += '</div>';
   }
 
-  html += '<div class="grid2 print-doc-sig" style="margin-top:40px;padding-top:24px;border-top:1px solid var(--border)">';
+  html += '<div class="grid2" style="margin-top:40px;padding-top:24px;border-top:1px solid var(--border)">';
   html += '<div><div class="small muted" style="text-transform:uppercase;font-weight:600;margin-bottom:8px">'+t("authorizedBy")+'</div>';
-  html += '<div class="print-doc-sig-line" style="height:64px;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:flex-start">'+(state.company.signatureUrl?'<img src="'+state.company.signatureUrl+'" style="height:56px;object-fit:contain"/>':'')+'</div>';
+  html += '<div style="height:64px;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:flex-start">'+(state.company.signatureUrl?'<img src="'+state.company.signatureUrl+'" style="height:56px;object-fit:contain"/>':'')+'</div>';
   html += '<div class="small muted" style="margin-top:4px">'+escapeHtml(state.company.nameEn)+'</div></div>';
   html += '<div style="text-align:end"><div class="small muted" style="text-transform:uppercase;font-weight:600;margin-bottom:8px">'+t("customerSignature")+'</div>';
-  html += '<div class="print-doc-sig-line" style="height:64px;border-bottom:1px solid var(--border)"></div><div class="small muted" style="margin-top:4px">'+escapeHtml(q.customerName)+'</div></div>';
+  html += '<div style="height:64px;border-bottom:1px solid var(--border)"></div><div class="small muted" style="margin-top:4px">'+escapeHtml(q.customerName)+'</div></div>';
   html += '</div>';
 
   html += '<div class="print-doc-footer" style="text-align:center" class="small muted">';
@@ -1081,9 +1008,6 @@ Object.assign(window.CGA, {
   },
   closeCustomerModal: function(){ customerUI.modalOpen=false; customerUI.form=null; customerUI.editId=null; render(); },
   custForm: function(k,v){ customerUI.form[k]=v; },
-  /* Same as custForm but auto-capitalizes the first letter of each word
-     in-place on the input element itself (no re-render needed). */
-  custFormCap: function(k, el){ customerUI.form[k] = applyAutoCap(el); },
   /* Sanitizes a field to digits-only in place, without touching focus/cursor
      via a full re-render — just corrects the same input node directly. */
   custFormDigits: function(k, el, maxLen){
@@ -1157,12 +1081,6 @@ Object.assign(window.CGA, {
       render();
     }
   },
-  /* Same as builderSet but auto-capitalizes the field in-place first (used
-     for free-text fields like notes). */
-  builderSetCap: function(k, el){
-    ensureBuilder();
-    builderState[k] = applyAutoCap(el);
-  },
   draftSet: function(k,v){
     ensureBuilder();
     if(k==="qty"||k==="unitPrice"||k==="clicheCost"||k==="discountPercent") v = parseFloat(v)||0;
@@ -1178,11 +1096,6 @@ Object.assign(window.CGA, {
     }
     // description: state updates silently, nothing else on screen depends on it live
   },
-  /* Same as draftSet('description',...) but auto-capitalizes in-place first. */
-  draftDescCap: function(el){
-    ensureBuilder();
-    builderState.draftItem.description = applyAutoCap(el);
-  },
   addLineItem: function(){
     ensureBuilder();
     var d = builderState.draftItem;
@@ -1191,45 +1104,7 @@ Object.assign(window.CGA, {
     builderState.draftItem = {description:"",qty:1,unit:"PCS",unitPrice:0,clicheCost:0,discountPercent:0};
     render();
   },
-  /* Loads an existing line item's full data back into the add-line form so
-     it can be edited, instead of only being deletable. */
-  editLineItem: function(idx){
-    ensureBuilder();
-    var it = builderState.items[idx];
-    if(!it) return;
-    builderState.draftItem = {description:it.description, qty:it.qty, unit:it.unit, unitPrice:it.unitPrice, clicheCost:it.clicheCost||0, discountPercent:it.discountPercent||0};
-    builderState.editingItemIndex = idx;
-    render();
-  },
-  cancelEditLineItem: function(){
-    ensureBuilder();
-    builderState.draftItem = {description:"",qty:1,unit:"PCS",unitPrice:0,clicheCost:0,discountPercent:0};
-    builderState.editingItemIndex = null;
-    render();
-  },
-  updateLineItem: function(){
-    ensureBuilder();
-    var idx = builderState.editingItemIndex;
-    if(idx==null || !builderState.items[idx]) return;
-    var d = builderState.draftItem;
-    if(!d.description.trim()){ toast(t("required"),"error"); return; }
-    var existingId = builderState.items[idx].id;
-    builderState.items[idx] = {id:existingId, description:d.description, qty:d.qty||1, unit:d.unit, unitPrice:d.unitPrice||0, clicheCost:d.clicheCost||0, discountPercent:d.discountPercent||0};
-    builderState.draftItem = {description:"",qty:1,unit:"PCS",unitPrice:0,clicheCost:0,discountPercent:0};
-    builderState.editingItemIndex = null;
-    toast(t("save")+" ✓","success");
-    render();
-  },
-  removeLineItem: function(idx){
-    builderState.items.splice(idx,1);
-    if(builderState.editingItemIndex === idx){
-      builderState.editingItemIndex = null;
-      builderState.draftItem = {description:"",qty:1,unit:"PCS",unitPrice:0,clicheCost:0,discountPercent:0};
-    } else if(builderState.editingItemIndex !== null && builderState.editingItemIndex > idx){
-      builderState.editingItemIndex -= 1;
-    }
-    render();
-  },
+  removeLineItem: function(idx){ builderState.items.splice(idx,1); render(); },
   cancelBuilder: function(){ builderState = null; setView("history"); },
   saveQuotation: function(status, goPreview){
     ensureBuilder();
@@ -1265,7 +1140,6 @@ Object.assign(window.CGA, {
 
   /* Settings */
   settingsSet: function(section,key,val){ ensureSettingsForm(); settingsForm[section][key]=val; },
-  settingsSetCap: function(section,key,el){ ensureSettingsForm(); settingsForm[section][key] = applyAutoCap(el); },
   handleImageUpload: function(evt, field){
     var file = evt.target.files && evt.target.files[0];
     if(!file) return;

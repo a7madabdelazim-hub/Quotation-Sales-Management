@@ -69,7 +69,7 @@ button{cursor:pointer}
 .sidebar-footer .ver{color:var(--primary);font-weight:600}
 
 /* ---------- Header ---------- */
-.topheader{position:sticky;top:0;z-index:30;background:color-mix(in oklab,var(--background) 80%,transparent);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.topheader{position:sticky;top:0;z-index:30;background:color-mix(in oklab,var(--background) 80%,transparent);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding-top:max(env(safe-area-inset-top),0px)}
 .topheader-in{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:56px;gap:12px}
 @media (min-width:768px){.topheader-in{padding:0 24px;height:64px}}
 .topheader-left{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
@@ -180,11 +180,29 @@ td{padding:10px 12px;border-bottom:1px solid var(--border)}
   .main-col{min-height:0!important}
   .quote-preview-shell{min-height:0!important}
   /* @page margin:0 stops Chrome/Edge from drawing their default header/footer
-     (page title, file:// URL, date, page numbers). The same visual paper
-     margin is re-created below via print-only padding on .print-area, so the
-     printed page keeps the exact same whitespace as before. */
-  .print-area{padding:16mm!important;box-sizing:border-box}
+     (page title, file:// URL, date, page numbers). A similar paper margin is
+     re-created below via print-only padding on .print-area, so the printed
+     page keeps essentially the same whitespace as before. */
+  .print-area{padding:10mm!important;box-sizing:border-box}
   @page{size:A4;margin:0}
+  /* Extra safety margin so the document reliably fits one A4 page: this only
+     tightens spacing between sections for the printed/PDF output specifically
+     (scoped to @media print) - no color, border, or font-size is touched, and
+     the on-screen preview is completely unaffected. */
+  .print-doc-body{padding:16px!important}
+  .print-doc-header{padding-bottom:12px!important;margin-bottom:12px!important}
+  .print-doc-logo{height:48px!important;width:48px!important}
+  .print-doc-badge{padding:5px 14px!important}
+  .print-doc-meta{padding:10px 0!important}
+  .print-doc table th{padding:5px 8px!important}
+  .print-doc table td{padding:6px 8px!important}
+  .print-doc-totalswrap{margin-top:10px!important}
+  .print-doc-totals-box{padding:10px 12px!important}
+  .print-doc-grandtotal{padding:8px 12px!important;margin-top:6px!important}
+  .print-doc-notes{margin-top:14px!important;padding-top:10px!important}
+  .print-doc-sig{margin-top:16px!important;padding-top:10px!important}
+  .print-doc-sig-line{height:36px!important}
+  .print-doc-footer{margin:12px -16px -16px!important;padding:10px 16px!important}
 }
 .print-doc{background:var(--card);border-radius:24px;border:1px solid var(--border);padding:0;overflow:hidden;box-shadow:0 20px 50px -20px #0a254040,0 2px 8px #0a254014;position:relative}
 .print-doc-topbar{height:8px;background:linear-gradient(90deg,#0a2540 0%,#0f3d63 35%,#007aff 75%,#4fc3f7 100%)}
@@ -953,7 +971,7 @@ function renderPreview(){
   var fc = function(v){ return formatCurrency(v,q.currency,lang); };
 
   var html = '<div class="quote-preview-shell" style="min-height:100vh;background:var(--muted)">';
-  html += '<div class="no-print" style="position:sticky;top:56px;z-index:20;background:color-mix(in oklab,var(--background) 95%,transparent);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)">';
+  html += '<div class="no-print" style="position:sticky;top:calc(56px + env(safe-area-inset-top));z-index:20;background:color-mix(in oklab,var(--background) 95%,transparent);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)">';
   html += '<div style="max-width:900px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
   html += '<button class="btn btn-glass btn-sm" onclick="CGA.closePreview()">'+ICONS.back+' '+t("history")+'</button><div style="flex:1"></div>';
   html += '<select class="input" style="width:auto" onchange="CGA.updateStatus(\''+q.id+'\',this.value)">';
@@ -980,7 +998,7 @@ function renderPreview(){
   html += '<div class="small muted" style="margin-top:4px">'+formatDate(q.date,lang)+'</div></div>';
   html += '</div>';
 
-  html += '<div class="grid2" style="padding:24px 0">';
+  html += '<div class="grid2 print-doc-meta" style="padding:24px 0">';
   html += '<div><div class="small muted" style="text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:8px">'+t("to")+':</div>';
   html += '<div style="font-weight:600;font-size:16px">'+escapeHtml(q.customerName)+'</div>';
   if(customer && customer.nameAr) html += '<div class="small muted" dir="rtl">'+escapeHtml(customer.nameAr)+'</div>';
@@ -1008,7 +1026,7 @@ function renderPreview(){
   });
   html += '</tbody></table></div>';
 
-  html += '<div style="display:flex;justify-content:flex-end;margin-top:20px"><div style="width:100%;max-width:340px" class="print-doc-totals-box">';
+  html += '<div class="print-doc-totalswrap" style="display:flex;justify-content:flex-end;margin-top:20px"><div style="width:100%;max-width:340px" class="print-doc-totals-box">';
   html += kv(t("subtotal"), fc(totals.itemsSubtotal));
   if(q.globalDiscountPercent>0) html += kv(t("globalDiscount")+" ("+q.globalDiscountPercent+"%)", "- "+fc(totals.globalDiscountAmount));
   if(q.deliveryCharge>0) html += kv(t("deliveryCharge"), fc(totals.delivery));
@@ -1017,18 +1035,18 @@ function renderPreview(){
   html += '</div></div>';
 
   if(q.notes || q.termsConditions){
-    html += '<div class="grid2" style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border)">';
+    html += '<div class="grid2 print-doc-notes" style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border)">';
     if(q.notes) html += '<div><div class="small muted" style="text-transform:uppercase;font-weight:600;margin-bottom:6px">'+t("notes")+'</div><p class="small" style="white-space:pre-wrap">'+escapeHtml(q.notes)+'</p></div>';
     if(q.termsConditions) html += '<div><div class="small muted" style="text-transform:uppercase;font-weight:600;margin-bottom:6px">'+t("termsConditions")+'</div><p class="small muted" style="white-space:pre-wrap;font-size:11px">'+escapeHtml(q.termsConditions)+'</p></div>';
     html += '</div>';
   }
 
-  html += '<div class="grid2" style="margin-top:40px;padding-top:24px;border-top:1px solid var(--border)">';
+  html += '<div class="grid2 print-doc-sig" style="margin-top:40px;padding-top:24px;border-top:1px solid var(--border)">';
   html += '<div><div class="small muted" style="text-transform:uppercase;font-weight:600;margin-bottom:8px">'+t("authorizedBy")+'</div>';
-  html += '<div style="height:64px;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:flex-start">'+(state.company.signatureUrl?'<img src="'+state.company.signatureUrl+'" style="height:56px;object-fit:contain"/>':'')+'</div>';
+  html += '<div class="print-doc-sig-line" style="height:64px;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:flex-start">'+(state.company.signatureUrl?'<img src="'+state.company.signatureUrl+'" style="height:56px;object-fit:contain"/>':'')+'</div>';
   html += '<div class="small muted" style="margin-top:4px">'+escapeHtml(state.company.nameEn)+'</div></div>';
   html += '<div style="text-align:end"><div class="small muted" style="text-transform:uppercase;font-weight:600;margin-bottom:8px">'+t("customerSignature")+'</div>';
-  html += '<div style="height:64px;border-bottom:1px solid var(--border)"></div><div class="small muted" style="margin-top:4px">'+escapeHtml(q.customerName)+'</div></div>';
+  html += '<div class="print-doc-sig-line" style="height:64px;border-bottom:1px solid var(--border)"></div><div class="small muted" style="margin-top:4px">'+escapeHtml(q.customerName)+'</div></div>';
   html += '</div>';
 
   html += '<div class="print-doc-footer" style="text-align:center" class="small muted">';

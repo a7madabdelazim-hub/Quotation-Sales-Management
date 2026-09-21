@@ -655,7 +655,7 @@ var DEFAULT_SETTINGS = {
   defaultPaymentTerms:"50% advance with order, 50% on delivery",
   defaultQuotationValidityDays:14,
   defaultTermsConditions:"1. Prices are valid for 14 days from the date of issue.\n2. 50% advance payment required with purchase order.\n3. Balance due on delivery unless otherwise agreed.\n4. Delivery timeframe: 10-15 working days from order confirmation.\n5. All prices include VAT at the prevailing rate.\n6. Goods remain property of Century Gate Company until full payment is received.\n7. Any disputes subject to Riyadh jurisdiction.",
-  quotationPrefix:"Q-2026-", quotationStartSeq:1
+  quotationPrefix:"Q-2026-", quotationStartSeq:1, riyalSymbol:"newsym"
 };
 
 /* ---------------- State / persistence ---------------- */
@@ -709,11 +709,23 @@ function computeQuotationTotals(q){
     grandTotal: beforeVat + vatAmount
   };
 }
+/* Riyal symbol options. The new sign is U+20C1 (Unicode 17.0, Sept 2025);
+   U+FDFC is the older, more widely supported glyph. */
+var RIYAL_SYMBOLS = {
+  word:   { en:"SAR",      ar:"ر.س" },
+  old:    { en:"\uFDFC",   ar:"\uFDFC" },
+  newsym: { en:"\u20C1",   ar:"\u20C1" }
+};
+function currencySymbol(currency, lang){
+  if(currency !== "SAR") return currency;
+  var set = RIYAL_SYMBOLS[state.settings.riyalSymbol] || RIYAL_SYMBOLS.word;
+  return lang === "ar" ? set.ar : set.en;
+}
 function formatCurrency(amount, currency, lang){
   currency = currency || "SAR"; lang = lang || state.settings.language;
-  var symbol = currency === "SAR" ? (lang === "ar" ? "ر.س" : "SAR") : currency;
+  var symbol = currencySymbol(currency, lang);
   var formatted = new Intl.NumberFormat(lang === "ar" ? "ar-SA" : "en-US", {minimumFractionDigits:2,maximumFractionDigits:2}).format(amount || 0);
-  return lang === "ar" ? (formatted+" "+symbol) : (symbol+" "+formatted);
+  return formatted+" "+symbol;
 }
 function formatDate(dateStr, lang){
   lang = lang || state.settings.language;
@@ -1328,6 +1340,10 @@ function renderSettings(){
   html += '<option value="en" '+(f.settings.language==="en"?'selected':'')+'>'+t("english")+'</option><option value="ar" '+(f.settings.language==="ar"?'selected':'')+'>'+t("arabic")+'</option></select></div>';
   html += '<div class="field"><label>'+t("theme")+'</label><select class="input" onchange="CGA.settingsSet(\'settings\',\'theme\',this.value)">';
   html += '<option value="light" '+(f.settings.theme==="light"?'selected':'')+'>'+t("light")+'</option><option value="dark" '+(f.settings.theme==="dark"?'selected':'')+'>'+t("dark")+'</option></select></div>';
+  html += '<div class="field"><label>'+(state.settings.language==="ar"?"رمز العملة":"Currency symbol")+'</label><select class="input" onchange="CGA.settingsSet(\'settings\',\'riyalSymbol\',this.value)">';
+  html += '<option value="newsym" '+(f.settings.riyalSymbol==="newsym"?'selected':'')+'>\u20C1  (new riyal sign)</option>';
+  html += '<option value="old" '+(f.settings.riyalSymbol==="old"?'selected':'')+'>\uFDFC  (classic riyal sign)</option>';
+  html += '<option value="word" '+(f.settings.riyalSymbol==="word"?'selected':'')+'>SAR / \u0631.\u0633</option></select></div>';
   html += '</div>';
   html += '<button class="btn btn-primary btn-block" onclick="CGA.saveSettings()">'+t("saveSettings")+'</button>';
   html += '</div></div>';
@@ -1359,9 +1375,9 @@ function renderPreview(){
   html += '</select>';
   html += '<button class="btn btn-glass btn-sm" onclick="CGA.editFromPreview(\''+q.id+'\')">'+ICONS.edit+' '+t("edit")+'</button>';
   if(customer){
-    html += '<button class="btn btn-glass btn-sm" onclick="CGA.shareWhatsapp(\''+q.id+'\')">'+ICONS.whatsapp+' WhatsApp</button>';
+    html += '<button class="btn btn-glass btn-sm" onclick="CGA.shareWhatsapp(\''+q.id+'\',this)">'+ICONS.whatsapp+' WhatsApp</button>';
   }
-  html += '<button class="btn btn-primary btn-sm" onclick="CGA.printQuotation()">'+ICONS.print+' '+t("print")+'</button>';
+  html += '<button class="btn btn-primary btn-sm" onclick="CGA.printQuotation(this)">'+ICONS.print+' '+t("print")+'</button>';
   html += '</div></div>';
 
   html += '<div class="print-area" style="max-width:900px;margin:0 auto;padding:16px">';
@@ -1416,8 +1432,8 @@ function renderPreview(){
 
   if(q.notes || q.termsConditions){
     html += '<div class="grid2" style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border)">';
-    if(q.notes) html += '<div><div class="small muted" style="text-transform:uppercase;font-weight:600;margin-bottom:6px">'+t("notes")+'</div><p class="small" style="white-space:pre-wrap">'+escapeHtml(q.notes)+'</p></div>';
-    if(q.termsConditions) html += '<div><div class="small muted" style="text-transform:uppercase;font-weight:600;margin-bottom:6px">'+t("termsConditions")+'</div><p class="small muted" style="white-space:pre-wrap;font-size:11px">'+escapeHtml(q.termsConditions)+'</p></div>';
+    if(q.notes) html += '<div class="pd-notes"><div class="small muted" style="text-transform:uppercase;font-weight:600;margin-bottom:6px">'+t("notes")+'</div><p class="small" style="white-space:pre-wrap">'+escapeHtml(q.notes)+'</p></div>';
+    if(q.termsConditions) html += '<div class="pd-terms"><div class="small muted" style="text-transform:uppercase;font-weight:600;margin-bottom:6px">'+t("termsConditions")+'</div><p class="small muted" style="white-space:pre-wrap;font-size:11px">'+escapeHtml(q.termsConditions)+'</p></div>';
     html += '</div>';
   }
 
@@ -1436,6 +1452,99 @@ function renderPreview(){
   html += '</div></div></div></div>';
   function kv(label,val){ return '<div style="display:flex;justify-content:space-between" class="small"><span class="muted">'+label+'</span><span style="font-weight:500">'+val+'</span></div>'; }
   return html;
+}
+
+/* ---------------- Shared: render the quotation doc to a PDF blob ----------------
+   html2canvas 1.4.1 has three limitations this works around:
+     1. it cannot parse oklab() colors, which is what color-mix(in oklab,...)
+        computes to - hitting one aborts the whole capture;
+     2. it mis-places absolutely positioned pseudo-elements (the header
+        accent bar landed across the customer name);
+     3. it renders angled gradients with a wrong gradient-line length,
+        washing out the end stops.
+   Everything below is injected into the CLONE only, so the on-screen app
+   is never affected. ------------------------------------------------------- */
+var PDF_EXPORT_CSS = [
+  /* always export in light theme, whatever the app is set to */
+  'html,:root{color-scheme:light !important}',
+  /* oklab color-mix -> measured static equivalents */
+  '.print-doc-totals-box{background:linear-gradient(180deg,#f2f5f8,#ffffff) !important}',
+  '.print-doc-footer{background:linear-gradient(180deg,#ffffff,#f1f4f8) !important}',
+  '[style*="color-mix"]{background:#fbfcfd !important}',
+  /* table header: one continuous band on the row (per-cell backgrounds
+     leave a 1px seam at every column boundary) */
+  '.print-doc table{border-collapse:separate !important;border-spacing:0 !important}',
+  '.print-doc thead tr{background:linear-gradient(180deg,#eceff3,#ffffff) !important}',
+  '.print-doc thead th{background:none !important;background-color:transparent !important;border-bottom:1px solid #dfe1e4 !important}',
+  /* keep every cell on one line; the description may still wrap */
+  '.print-doc table th:not(:nth-child(2)),.print-doc table td:not(:nth-child(2)){white-space:nowrap !important}',
+  /* header accent bar painted as a background instead of a pseudo-element */
+  '.print-doc-header{background-image:linear-gradient(90deg,#0a2540,#0f3d63 35%,#007aff 75%,#4fc3f7 100%) !important;background-size:100% 2px !important;background-position:left bottom !important;background-repeat:no-repeat !important}',
+  /* logo is excluded from the exported document */
+  '.print-doc-logo{display:none !important}',
+  /* angled gradients -> axis-aligned, shadows dropped */
+  '.print-doc-badge{background:linear-gradient(to right,#0a2540 0%,#1a3a5c 50%,#007aff 100%) !important;box-shadow:none !important}',
+  '.print-doc-grandtotal{background:linear-gradient(to right,#0a2540 0%,#1a3a5c 50%,#007aff 100%) !important;box-shadow:none !important}',
+  '.print-doc{box-shadow:none !important}',
+  /* terms on the left, notes on the right */
+  '.pd-terms{order:1 !important}',
+  '.pd-notes{order:2 !important}'
+].join('\n');
+
+function buildQuotationPdfBlob(target, format){
+  return html2canvas(target, {
+    scale:2, backgroundColor:"#ffffff", windowWidth:900,
+    onclone: function(doc){
+      doc.documentElement.classList.remove("dark");
+      var st = doc.createElement("style");
+      st.textContent = PDF_EXPORT_CSS;
+      doc.head.appendChild(st);
+      var c = doc.getElementById("quotePrintDoc");
+      if(c){
+        /* reflow to page width so the document fits a page instead of
+           rendering as a tall phone-width strip */
+        c.style.width = "860px"; c.style.maxWidth = "860px";
+        /* html2canvas materialises pseudo-elements as real nodes during
+           cloning - drop them (the header bar is redrawn above) */
+        var ps = c.querySelectorAll("html2canvaspseudoelement");
+        for(var i=0;i<ps.length;i++){ ps[i].parentNode.removeChild(ps[i]); }
+      }
+    }
+  }).then(function(canvas){
+    var jsPDF = window.jspdf.jsPDF;
+    var pdf = new jsPDF({unit:"mm", format:format, orientation:"portrait"});
+    var pageW = pdf.internal.pageSize.getWidth();
+    var pageH = pdf.internal.pageSize.getHeight();
+    var margin = 10;
+    var imgW = pageW - margin*2;
+    var fullH = imgW * (canvas.height / canvas.width);
+    var usableH = pageH - margin*2;
+    var img = canvas.toDataURL("image/jpeg", 0.95);
+    if(fullH <= usableH){
+      pdf.addImage(img, "JPEG", margin, margin, imgW, fullH);
+    } else {
+      /* long quotation: slice the capture across pages */
+      var rendered = 0;
+      while(rendered < fullH - 0.5){
+        if(rendered > 0){ pdf.addPage(); }
+        pdf.addImage(img, "JPEG", margin, margin - rendered, imgW, fullH);
+        pdf.setFillColor(255,255,255);
+        pdf.rect(0, 0, pageW, margin, "F");
+        pdf.rect(0, pageH - margin, pageW, margin, "F");
+        rendered += usableH;
+      }
+    }
+    return pdf.output("blob");
+  });
+}
+
+/* Busy-state helper: the capture takes a moment on a phone, so the button
+   that was tapped is disabled and labelled until the share sheet appears. */
+function withBusyButton(btn, label, work){
+  var original = null;
+  if(btn){ original = btn.innerHTML; btn.disabled = true; btn.innerHTML = label; }
+  function restore(){ if(btn){ btn.disabled = false; btn.innerHTML = original; } }
+  return work().then(restore, function(err){ restore(); throw err; });
 }
 
 /* ---------------- Action handlers (extend CGA) ---------------- */
@@ -1642,7 +1751,7 @@ Object.assign(window.CGA, {
   },
 
   /* Share */
-  shareWhatsapp: function(id){
+  shareWhatsapp: function(id, btn){
     var q = state.quotations.find(function(x){return x.id===id;});
     var customer = state.customers.find(function(c){return c.id===q.customerId;});
     var totals = computeQuotationTotals(q);
@@ -1665,15 +1774,8 @@ Object.assign(window.CGA, {
       return;
     }
 
-    html2canvas(target, {scale:2, backgroundColor:"#ffffff"}).then(function(canvas){
-      var jsPDF = window.jspdf.jsPDF;
-      var pdf = new jsPDF({unit:"mm", format:"a3", orientation:"portrait"});
-      var pageW = pdf.internal.pageSize.getWidth();
-      var margin = 14;
-      var imgW = pageW - margin*2;
-      var imgH = imgW * (canvas.height / canvas.width);
-      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, imgW, imgH);
-      var blob = pdf.output("blob");
+    withBusyButton(btn, L("Preparing\u2026","\u062c\u0627\u0631\u064d \u0627\u0644\u062a\u062c\u0647\u064a\u0632\u2026"), function(){
+    return buildQuotationPdfBlob(target, "a3").then(function(blob){
       var file = new File([blob], q.number+".pdf", {type:"application/pdf"});
 
       if(navigator.canShare && navigator.canShare({files:[file]})){
@@ -1689,37 +1791,45 @@ Object.assign(window.CGA, {
       } else {
         fallbackToLink(L("This browser can\u2019t attach files here \u2014 opening WhatsApp instead","هذا المتصفح لا يدعم إرفاق الملفات هنا \u2014 سيتم فتح واتساب بدلاً من ذلك"));
       }
+    });
     }).catch(function(err){
       fallbackToLink(L("Couldn\u2019t generate the PDF \u2014 opening WhatsApp instead","تعذّر إنشاء PDF \u2014 سيتم فتح واتساب بدلاً من ذلك"));
     });
   },
 
-  /* Print: window.print() is a silent no-op on iOS when the app is
-     launched from a Home Screen icon (standalone display-mode). The
-     fix is to hand the printable document to a plain Safari window
-     (opened via window.open, which iOS routes to Safari itself,
-     outside the standalone context) and trigger print() there. */
-  printQuotation: function(){
-    var isStandalone = (window.navigator.standalone === true) ||
-      (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
-    if(!isStandalone){ window.print(); return; }
-    var printArea = document.querySelector(".print-area");
-    if(!printArea){ window.print(); return; }
-    var w = window.open("", "_blank");
-    if(!w){
-      toast(t("popupBlockedForPrint") || "Allow pop-ups to print, then try again", "error");
+  /* Print: window.print() is a silent no-op on iOS when the app runs from a
+     Home Screen icon, so build a PDF and hand it to the native share sheet -
+     "Print" (AirPrint) and every share target live there. Falls back to
+     window.print() only where file sharing is unavailable (desktop). */
+  printQuotation: function(btn){
+    var q = state.quotations.find(function(x){return x.id===nav.previewId;});
+    var lang = state.settings.language;
+    function L(en,ar){ return lang==="ar" ? ar : en; }
+    var target = document.getElementById("quotePrintDoc");
+
+    if(!target || typeof html2canvas==="undefined" || typeof window.jspdf==="undefined"){
+      window.print();
       return;
     }
-    var styles = "";
-    document.querySelectorAll("style").forEach(function(s){ styles += s.outerHTML; });
-    var htmlAttrs = 'lang="'+document.documentElement.lang+'" dir="'+document.documentElement.dir+'" class="'+document.documentElement.className+'"';
-    var doc = "<!DOCTYPE html><html "+htmlAttrs+"><head><meta charset=\"utf-8\">"+styles+
-      "<style>body{margin:0}</style></head><body>"+printArea.outerHTML+
-      "<script>window.onload=function(){setTimeout(function(){window.print();},350);};<\/script>"+
-      "</body></html>";
-    w.document.open();
-    w.document.write(doc);
-    w.document.close();
+
+    withBusyButton(btn, L("Preparing\u2026","\u062c\u0627\u0631\u064d \u0627\u0644\u062a\u062c\u0647\u064a\u0632\u2026"), function(){
+      return buildQuotationPdfBlob(target, "a4").then(function(blob){
+        var file = new File([blob], (q ? q.number : "quotation")+".pdf", {type:"application/pdf"});
+        if(navigator.canShare && navigator.canShare({files:[file]})){
+          return navigator.share({
+            files:[file],
+            title: q ? (t("quotation")+" "+q.number) : t("quotation")
+          }).catch(function(err){
+            if(!err || err.name !== "AbortError"){
+              toast(L("Couldn\u2019t open the print/share sheet","\u062a\u0639\u0630\u0651\u0631 \u0641\u062a\u062d \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0637\u0628\u0627\u0639\u0629"), "error");
+            }
+          });
+        }
+        window.print();
+      });
+    }).catch(function(){
+      toast(L("Couldn\u2019t generate the PDF","\u062a\u0639\u0630\u0651\u0631 \u0625\u0646\u0634\u0627\u0621 \u0645\u0644\u0641 PDF"), "error");
+    });
   }
 });
 

@@ -937,7 +937,7 @@ function renderPreview(){
   if(customer){
     html += '<button class="btn btn-glass btn-sm" onclick="CGA.shareWhatsapp(\''+q.id+'\')">'+ICONS.whatsapp+' WhatsApp</button>';
   }
-  html += '<button class="btn btn-primary btn-sm" onclick="window.print()">'+ICONS.print+' '+t("print")+'</button>';
+  html += '<button class="btn btn-primary btn-sm" onclick="CGA.printQuotation()">'+ICONS.print+' '+t("print")+'</button>';
   html += '</div></div>';
 
   html += '<div class="print-area" style="max-width:900px;margin:0 auto;padding:16px">';
@@ -1225,6 +1225,34 @@ Object.assign(window.CGA, {
     var msg = t("quotation")+" "+q.number+" - "+q.customerName+" - "+formatCurrency(totals.grandTotal,q.currency,state.settings.language);
     var phone = customer && customer.phone ? customer.phone.replace(/[^0-9]/g,"") : "";
     window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(msg), "_blank");
+  },
+
+  /* Print: window.print() is a silent no-op on iOS when the app is
+     launched from a Home Screen icon (standalone display-mode). The
+     fix is to hand the printable document to a plain Safari window
+     (opened via window.open, which iOS routes to Safari itself,
+     outside the standalone context) and trigger print() there. */
+  printQuotation: function(){
+    var isStandalone = (window.navigator.standalone === true) ||
+      (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+    if(!isStandalone){ window.print(); return; }
+    var printArea = document.querySelector(".print-area");
+    if(!printArea){ window.print(); return; }
+    var w = window.open("", "_blank");
+    if(!w){
+      toast(t("popupBlockedForPrint") || "Allow pop-ups to print, then try again", "error");
+      return;
+    }
+    var styles = "";
+    document.querySelectorAll("style").forEach(function(s){ styles += s.outerHTML; });
+    var htmlAttrs = 'lang="'+document.documentElement.lang+'" dir="'+document.documentElement.dir+'" class="'+document.documentElement.className+'"';
+    var doc = "<!DOCTYPE html><html "+htmlAttrs+"><head><meta charset=\"utf-8\">"+styles+
+      "<style>body{margin:0}</style></head><body>"+printArea.outerHTML+
+      "<script>window.onload=function(){setTimeout(function(){window.print();},350);};<\/script>"+
+      "</body></html>";
+    w.document.open();
+    w.document.write(doc);
+    w.document.close();
   }
 });
 

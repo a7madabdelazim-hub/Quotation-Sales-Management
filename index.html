@@ -992,6 +992,28 @@ function closePreview(){ nav.view = "history"; nav.previewId = null; render(); }
 window.CGA = {
   setView: setView, openPreview: openPreview, closePreview: closePreview,
   upperInput: upperInput,
+  itemSet: function(idx, k, v){
+    ensureBuilder();
+    var it = builderState.items[idx];
+    if(!it) return;
+    v = parseFloat(v); if(!(v>=0)) v = 0;
+    it[k] = v;
+    var b = builderState, lang = state.settings.language;
+    var lt = document.getElementById("lineTotal_"+idx);
+    if(lt) lt.textContent = formatCurrency(computeLineTotal(it), b.currency, lang);
+    var el = document.getElementById("builderTotalsSummary");
+    if(el){
+      var totals = computeQuotationTotals({items:b.items, globalDiscountPercent:b.globalDiscountPercent, vatRate:b.vatRate, deliveryCharge:b.deliveryCharge});
+      el.innerHTML = renderBuilderTotalsInner(b, totals, lang);
+    }
+    // keep the edit form in sync if this same line is open in it
+    if(b.editingItemIndex===idx){
+      b.draftItem[k] = v;
+      var de = document.querySelector('[data-fk="draft.'+k+'"]');
+      if(de) de.value = v;
+      CGA.draftSet(k, v);
+    }
+  },
   richInput: function(ed, ev){
     if(ev && ev.isComposing) return;
     richUpper(ed);
@@ -1537,10 +1559,13 @@ function renderBuilder(){
       html += '<button class="btn btn-neu btn-icon" style="width:26px;height:26px;padding:0" onclick="CGA.editLineItem('+idx+')">'+ICONS.edit+'</button>';
       html += '<button class="btn btn-neu btn-icon btn-danger" style="width:26px;height:26px;padding:0" onclick="CGA.removeLineItem('+idx+')">'+ICONS.trash+'</button>';
       html += '</div></div>';
-      html += '<div class="small muted" style="margin-top:4px">'+it.qty+' '+unitLabel(it.unit)+' × '+formatCurrency(it.unitPrice,b.currency,lang)+
-        (it.discountPercent>0 ? (' • '+t("discount")+' '+it.discountPercent+'%') : '') +
-        (it.clicheCost>0 ? (' • '+t("clicheCost")+' '+formatCurrency(it.clicheCost,b.currency,lang)) : '') +
-        ' • <b>'+formatCurrency(lineTotal,b.currency,lang)+'</b></div></div>';
+      // quick-edit: qty / unit price / cliché cost right on the line, totals update live
+      html += '<div class="grid3 line-quick-edit" style="margin-top:8px">';
+      html += '<div class="field" style="margin:0"><label>'+t("quantity")+' ('+unitLabel(it.unit)+')</label><input data-fk="item.'+idx+'.qty" class="input" type="number" inputmode="decimal" min="0" step="1" value="'+it.qty+'" oninput="CGA.itemSet('+idx+',\'qty\',this.value)"/></div>';
+      html += '<div class="field" style="margin:0"><label>'+t("unitPrice")+'</label><input data-fk="item.'+idx+'.unitPrice" class="input" type="number" inputmode="decimal" min="0" step="0.01" value="'+it.unitPrice+'" oninput="CGA.itemSet('+idx+',\'unitPrice\',this.value)"/></div>';
+      html += '<div class="field" style="margin:0"><label>'+t("clicheCost")+'</label><input data-fk="item.'+idx+'.clicheCost" class="input" type="number" inputmode="decimal" min="0" step="0.01" value="'+(it.clicheCost||0)+'" oninput="CGA.itemSet('+idx+',\'clicheCost\',this.value)"/></div>';
+      html += '</div>';
+      html += '<div class="small muted" style="margin-top:6px;display:flex;justify-content:space-between;gap:8px"><span>'+(it.discountPercent>0 ? (t("discount")+' '+it.discountPercent+'%') : '')+'</span><span>'+t("lineTotal")+': <b id="lineTotal_'+idx+'" style="color:var(--foreground)">'+formatCurrency(lineTotal,b.currency,lang)+'</b></span></div></div>';
     });
   }
   // add-line form

@@ -189,6 +189,19 @@ td{padding:10px 12px;border-bottom:1px solid var(--border)}
 .print-doc-grandtotal{background:linear-gradient(135deg,#0a2540 0%,#1a3a5c 50%,#007aff 100%);color:#fff;border-radius:12px;padding:12px 16px;box-shadow:0 6px 16px #0a254040,inset 0 1px #ffffff33;margin-top:10px}
 .print-doc table{border-radius:12px;overflow:hidden}
 .print-doc thead th{background:linear-gradient(180deg,color-mix(in oklab,var(--primary) 7%,var(--card)),var(--card));font-weight:600}
+/* ---- Rich text: bold + 5 colors (descriptions, notes, terms) ---- */
+.fmt-b{font-weight:800}
+.fmt-c-black{color:#111111}.fmt-c-navy{color:#0A2540}.fmt-c-red{color:#A32D2D}.fmt-c-green{color:#3B6D11}.fmt-c-gold{color:#BA7517}
+.fmt-b,[class*="fmt-c-"]{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+html.dark .fmt-c-black{color:#f2f2f2}html.dark .fmt-c-navy{color:#7fb2e5}html.dark .fmt-c-red{color:#f09595}html.dark .fmt-c-green{color:#97c459}html.dark .fmt-c-gold{color:#ef9f27}
+.rich-toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.rich-btn{height:30px;min-width:30px;padding:0 8px;border-radius:8px;border:1px solid var(--input);background:var(--background);color:var(--foreground);font-weight:700;font-size:14px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.rich-btn:active{transform:scale(.94)}
+.rich-sw{height:24px;width:24px;min-width:24px;padding:0;border-radius:999px;border:2px solid var(--background);box-shadow:0 0 0 1px var(--input)}
+.rich-sep{width:1px;height:22px;background:var(--border);margin:0 2px}
+.rich-editor{white-space:pre-wrap;word-break:break-word;cursor:text;min-height:40px;line-height:1.5}
+.rich-editor.rich-multi{min-height:70px}
+.rich-editor:empty::before{content:attr(data-placeholder);color:var(--muted-foreground);pointer-events:none}
 .print-doc-footer{background:linear-gradient(180deg,transparent,color-mix(in oklab,var(--primary) 5%,var(--card)));border-radius:0 0 24px 24px;margin:32px -40px -40px;padding:24px 40px}
 @media (max-width:767px){.print-doc-footer{margin:24px -24px -24px;padding:20px 24px}}
 </style>
@@ -756,6 +769,211 @@ function upperInput(el){
   }
 }
 
+/* ---------------- Rich text: [b]..[/b] and [c:red]..[/c] ----------------
+   Stored as plain strings with light tags so old quotations (no tags) render
+   exactly as before. Colors: black, navy, red, green, gold. */
+var RICH_COLORS = ["black","navy","red","green","gold"];
+var RICH_HEX = {black:"#111111",navy:"#0A2540",red:"#A32D2D",green:"#3B6D11",gold:"#BA7517"};
+function parseRich(str){
+  str = String(str==null?"":str);
+  var runs = [], bDepth = 0, cStack = [], last = 0, m;
+  var re = /\[(\/?)(b|c)(?::([a-z]+))?\]/gi;
+  function push(txt){
+    if(!txt) return;
+    var c = cStack.length ? cStack[cStack.length-1] : null, b = bDepth>0;
+    var r = runs[runs.length-1];
+    if(r && r.b===b && r.c===c) r.text += txt; else runs.push({text:txt,b:b,c:c});
+  }
+  while((m = re.exec(str))){
+    var tag = m[2].toLowerCase(), close = m[1]==="/", col = m[3] ? m[3].toLowerCase() : null;
+    if(tag==="b" && col) continue;
+    if(tag==="c" && !close && RICH_COLORS.indexOf(col)<0) continue;
+    if(tag==="c" && close && col) continue;
+    push(str.slice(last, m.index)); last = re.lastIndex;
+    if(tag==="b"){ bDepth = close ? Math.max(0,bDepth-1) : bDepth+1; }
+    else { if(close) cStack.pop(); else cStack.push(col); }
+  }
+  push(str.slice(last));
+  return runs;
+}
+function mergeRuns(runs){
+  var out = [];
+  runs.forEach(function(r){
+    if(!r.text) return;
+    var p = out[out.length-1];
+    if(p && p.b===!!r.b && p.c===(r.c||null)) p.text += r.text;
+    else out.push({text:r.text,b:!!r.b,c:r.c||null});
+  });
+  return out;
+}
+function serializeRuns(runs){
+  return mergeRuns(runs).map(function(r){
+    var o = "", c = "";
+    if(r.b){ o += "[b]"; }
+    if(r.c){ o += "[c:"+r.c+"]"; c += "[/c]"; }
+    if(r.b){ c += "[/b]"; }
+    return o + r.text + c;
+  }).join("");
+}
+function runsPlain(runs){ return runs.map(function(r){ return r.text; }).join(""); }
+function richPlain(str){ return runsPlain(parseRich(str)); }
+function runsToHtml(runs){
+  return runs.map(function(r){
+    var cls = [];
+    if(r.b) cls.push("fmt-b");
+    if(r.c) cls.push("fmt-c-"+r.c);
+    var t = escapeHtml(r.text);
+    return cls.length ? '<span class="'+cls.join(" ")+'">'+t+'</span>' : t;
+  }).join("");
+}
+/* Use instead of escapeHtml() wherever a description / note / term is displayed. */
+function renderRich(str){ return runsToHtml(parseRich(str)); }
+function richEditorHtml(str){
+  var runs = parseRich(str);
+  var h = runsToHtml(runs);
+  if(/\n$/.test(runsPlain(runs))) h += "<br>";
+  return h;
+}
+function richColorFromCss(v){
+  if(!v) return null;
+  var m = String(v).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/), rgb;
+  if(m) rgb = [+m[1],+m[2],+m[3]];
+  else if(/^#[0-9a-f]{6}$/i.test(v)) rgb = [parseInt(v.substr(1,2),16),parseInt(v.substr(3,2),16),parseInt(v.substr(5,2),16)];
+  else return null;
+  var best = null, bd = 1e9;
+  for(var k in RICH_HEX){
+    var h = RICH_HEX[k], d = Math.abs(rgb[0]-parseInt(h.substr(1,2),16))+Math.abs(rgb[1]-parseInt(h.substr(3,2),16))+Math.abs(rgb[2]-parseInt(h.substr(5,2),16));
+    if(d<bd){ bd=d; best=k; }
+  }
+  return bd<=24 ? best : null;
+}
+/* Read an editor's DOM (spans, plus whatever the browser inserted) back into runs. */
+function domToRuns(root, multiline){
+  var runs = [];
+  function ends(){ var t = runsPlain(runs); return t.length ? t.charAt(t.length-1) : ""; }
+  function add(txt, f){ if(txt) runs.push({text:txt,b:f.b,c:f.c}); }
+  function walk(node, f){
+    for(var ch = node.firstChild; ch; ch = ch.nextSibling){
+      if(ch.nodeType===3){ add(ch.nodeValue, f); continue; }
+      if(ch.nodeType!==1) continue;
+      var tag = ch.tagName;
+      if(tag==="BR"){
+        // the trailing <br> we add after a final new line is only a placeholder
+        if(ch===root.lastChild && /\n$/.test(runsPlain(runs))) continue;
+        add("\n", f); continue;
+      }
+      var nf = {b:f.b, c:f.c};
+      var cl = ch.classList;
+      if(cl && cl.contains("fmt-b")) nf.b = true;
+      if(tag==="B" || tag==="STRONG") nf.b = true;
+      var fw = ch.style && ch.style.fontWeight;
+      if(fw==="bold" || parseInt(fw,10)>=600) nf.b = true;
+      if(fw==="normal" || fw==="400") nf.b = false;
+      RICH_COLORS.forEach(function(k){ if(cl && cl.contains("fmt-c-"+k)) nf.c = k; });
+      var cc = richColorFromCss(ch.style && ch.style.color) || richColorFromCss(ch.getAttribute("color"));
+      if(cc) nf.c = cc;
+      var block = tag==="DIV" || tag==="P";
+      if(block && runs.length && ends()!=="\n") add("\n", f);
+      walk(ch, nf);
+    }
+  }
+  walk(root, {b:false,c:null});
+  runs = mergeRuns(runs);
+  if(!multiline) runs.forEach(function(r){ r.text = r.text.replace(/\n+/g," "); });
+  return mergeRuns(runs);
+}
+function richTextLen(frag){ return runsPlain(domToRuns(frag, true)).length; }
+function richGetSel(ed){
+  var sel = window.getSelection();
+  if(!sel || !sel.rangeCount) return null;
+  var r = sel.getRangeAt(0);
+  if(!ed.contains(r.startContainer) || !ed.contains(r.endContainer)) return null;
+  var pre = document.createRange();
+  pre.selectNodeContents(ed);
+  pre.setEnd(r.startContainer, r.startOffset);
+  var start = richTextLen(pre.cloneContents());
+  pre.setEnd(r.endContainer, r.endOffset);
+  var end = richTextLen(pre.cloneContents());
+  return {start:start, end:end};
+}
+function richLocate(ed, pos){
+  var walker = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT, null, false), n, lastN = null;
+  while((n = walker.nextNode())){
+    lastN = n;
+    if(pos <= n.nodeValue.length) return {node:n, off:pos};
+    pos -= n.nodeValue.length;
+  }
+  if(lastN) return {node:lastN, off:lastN.nodeValue.length};
+  return {node:ed, off:0};
+}
+function richSetSel(ed, start, end){
+  try{
+    var a = richLocate(ed, start), b = richLocate(ed, end);
+    var r = document.createRange();
+    r.setStart(a.node, a.off); r.setEnd(b.node, b.off);
+    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  }catch(e){}
+}
+function richCaretEnd(ed){
+  try{
+    var r = document.createRange(); r.selectNodeContents(ed); r.collapse(false);
+    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  }catch(e){}
+}
+function richSave(ed){
+  var target = ed.getAttribute("data-rich");
+  var multi = ed.getAttribute("data-multi")==="1";
+  var val = serializeRuns(domToRuns(ed, multi));
+  if(!runsPlain(parseRich(val)).trim()) val = "";
+  if(target==="draft.description") CGA.draftSet("description", val);
+  else if(target==="builder.notes") CGA.builderSet("notes", val);
+  else if(target==="builder.terms") CGA.builderSet("termsConditions", val);
+}
+/* Uppercase every text node in place without moving the caret. */
+function richUpper(ed){
+  var sel = window.getSelection(), r = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
+  var sc = r && r.startContainer, so = r && r.startOffset, ec = r && r.endContainer, eo = r && r.endOffset;
+  var walker = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT, null, false), n, changed = false;
+  while((n = walker.nextNode())){
+    var u = n.nodeValue.toUpperCase();
+    if(u !== n.nodeValue){ n.nodeValue = u; changed = true; }
+  }
+  if(changed && r){
+    try{
+      var nr = document.createRange();
+      nr.setStart(sc, Math.min(so, sc.nodeType===3 ? sc.nodeValue.length : sc.childNodes.length));
+      nr.setEnd(ec, Math.min(eo, ec.nodeType===3 ? ec.nodeValue.length : ec.childNodes.length));
+      sel.removeAllRanges(); sel.addRange(nr);
+    }catch(e){}
+  }
+}
+var richLastSel = {};
+document.addEventListener("selectionchange", function(){
+  var a = document.activeElement;
+  if(a && a.classList && a.classList.contains("rich-editor")){
+    var s = richGetSel(a);
+    if(s) richLastSel[a.getAttribute("data-fk")] = s;
+  }
+});
+/* Build toolbar + editor markup. fk = data-fk key, multiline = allow new lines. */
+function richField(fk, value, placeholder, multiline, extraStyle){
+  var ar = state.settings.language==="ar";
+  var names = ar ? {black:"أسود",navy:"كحلي",red:"أحمر",green:"أخضر",gold:"ذهبي"} : {black:"Black",navy:"Navy",red:"Red",green:"Green",gold:"Gold"};
+  var stop = ' onpointerdown="event.preventDefault()" onmousedown="event.preventDefault()"';
+  var h = '<div class="rich-toolbar no-print">';
+  h += '<button type="button" class="rich-btn"'+stop+' title="'+(ar?"عريض":"Bold")+'" onclick="CGA.richFmt(\''+fk+'\',\'bold\')">B</button>';
+  h += '<span class="rich-sep"></span>';
+  RICH_COLORS.forEach(function(k){
+    h += '<button type="button" class="rich-btn rich-sw"'+stop+' title="'+names[k]+'" aria-label="'+names[k]+'" style="background:'+RICH_HEX[k]+'" onclick="CGA.richFmt(\''+fk+'\',\'color\',\''+k+'\')"></button>';
+  });
+  h += '<span class="rich-sep"></span>';
+  h += '<button type="button" class="rich-btn"'+stop+' title="'+(ar?"إزالة التنسيق":"Clear formatting")+'" style="font-weight:500;font-size:12px" onclick="CGA.richFmt(\''+fk+'\',\'clear\')">'+(ar?"مسح":"Clear")+'</button>';
+  h += '</div>';
+  h += '<div data-fk="'+fk+'" data-rich="'+fk+'" data-multi="'+(multiline?"1":"0")+'" class="input rich-editor'+(multiline?" rich-multi":"")+'" contenteditable="true" spellcheck="false" role="textbox"'+(multiline?' aria-multiline="true"':'')+' data-placeholder="'+escapeHtml(placeholder||"")+'"'+(extraStyle?' style="'+extraStyle+'"':'')+
+       ' onbeforeinput="CGA.richBefore(this,event)" oninput="CGA.richInput(this,event)" onkeydown="CGA.richKey(this,event)" onpaste="CGA.richPaste(this,event)" oncompositionend="CGA.richInput(this,event)">'+richEditorHtml(value)+'</div>';
+  return h;
+}
+
 /* ---------------- Toasts ---------------- */
 function toast(msg, kind){
   var wrap = document.getElementById("toastWrap");
@@ -774,6 +992,97 @@ function closePreview(){ nav.view = "history"; nav.previewId = null; render(); }
 window.CGA = {
   setView: setView, openPreview: openPreview, closePreview: closePreview,
   upperInput: upperInput,
+  richInput: function(ed, ev){
+    if(ev && ev.isComposing) return;
+    richUpper(ed);
+    if(!ed.textContent && ed.innerHTML) ed.innerHTML = "";
+    richSave(ed);
+  },
+  richBefore: function(ed, ev){
+    var it = ev.inputType;
+    if(it==="insertParagraph" || it==="insertLineBreak"){
+      ev.preventDefault();
+      if(ed.getAttribute("data-multi")==="1") CGA.richNewline(ed);
+    } else if(it==="formatBold" || it==="formatItalic" || it==="formatUnderline"){
+      ev.preventDefault();
+    }
+  },
+  richNewline: function(ed){
+    var s = richGetSel(ed);
+    if(!s) return;
+    var runs = domToRuns(ed, true), out = [], pos = 0, done = false;
+    runs.forEach(function(r){
+      var a = pos, b = pos + r.text.length;
+      if(!done && s.start>=a && s.start<=b){
+        out.push({text:r.text.slice(0, s.start-a)+"\n", b:r.b, c:r.c});
+        done = true;
+      } else if(b<=s.start){ out.push(r); }
+      if(done && b>s.end){ out.push({text:r.text.slice(Math.max(0,s.end-a)), b:r.b, c:r.c}); }
+      pos = b;
+    });
+    if(!done) out.push({text:"\n", b:false, c:null});
+    ed.innerHTML = richEditorHtml(serializeRuns(out));
+    richSetSel(ed, s.start+1, s.start+1);
+    richSave(ed);
+  },
+  richKey: function(ed, ev){
+    if(ev.key==="Enter" && !ev.isComposing && ev.keyCode!==229){
+      ev.preventDefault();
+      if(ed.getAttribute("data-multi")==="1") CGA.richNewline(ed);
+      return;
+    }
+    if((ev.ctrlKey||ev.metaKey) && !ev.shiftKey && !ev.altKey && (ev.key==="b"||ev.key==="B")){
+      ev.preventDefault(); CGA.richFmt(ed.getAttribute("data-fk"), "bold");
+    }
+  },
+  richPaste: function(ed, ev){
+    ev.preventDefault();
+    var txt = ((ev.clipboardData||window.clipboardData).getData("text/plain")||"").toUpperCase().replace(/\r\n?/g,"\n");
+    if(ed.getAttribute("data-multi")!=="1") txt = txt.replace(/\n+/g," ");
+    var sel = window.getSelection();
+    if(!sel.rangeCount) return;
+    var r = sel.getRangeAt(0); r.deleteContents();
+    var tn = document.createTextNode(txt); r.insertNode(tn);
+    r.setStartAfter(tn); r.collapse(true); sel.removeAllRanges(); sel.addRange(r);
+    ed.normalize();
+    richSave(ed);
+  },
+  richFmt: function(fk, cmd, arg){
+    var ed = document.querySelector('[data-fk="'+fk+'"]');
+    if(!ed) return;
+    var s = richGetSel(ed) || richLastSel[fk];
+    if(!s || s.start===s.end){
+      toast(state.settings.language==="ar" ? "حدد الكلمات أولاً ثم اختر التنسيق" : "Select the words first, then pick a format", "error");
+      ed.focus();
+      return;
+    }
+    var multi = ed.getAttribute("data-multi")==="1";
+    var runs = domToRuns(ed, multi), pieces = [], pos = 0;
+    runs.forEach(function(r){
+      var a = pos, b = pos + r.text.length;
+      var cuts = [a, Math.max(a,Math.min(b,s.start)), Math.max(a,Math.min(b,s.end)), b];
+      for(var i=0;i<3;i++){
+        if(cuts[i+1]>cuts[i]) pieces.push({text:r.text.slice(cuts[i]-a, cuts[i+1]-a), b:r.b, c:r.c, sel:(cuts[i]>=s.start && cuts[i+1]<=s.end)});
+      }
+      pos = b;
+    });
+    var selected = pieces.filter(function(p){ return p.sel && p.text.replace(/\s/g,""); });
+    if(cmd==="bold"){
+      var allB = selected.length && selected.every(function(p){ return p.b; });
+      pieces.forEach(function(p){ if(p.sel) p.b = !allB; });
+    } else if(cmd==="color"){
+      var allC = selected.length && selected.every(function(p){ return p.c===arg; });
+      pieces.forEach(function(p){ if(p.sel) p.c = allC ? null : arg; });
+    } else if(cmd==="clear"){
+      pieces.forEach(function(p){ if(p.sel){ p.b = false; p.c = null; } });
+    }
+    var val = serializeRuns(pieces);
+    ed.innerHTML = richEditorHtml(val);
+    ed.focus();
+    richSetSel(ed, s.start, s.end);
+    richLastSel[fk] = {start:s.start, end:s.end};
+    richSave(ed);
+  },
   toggleLanguage: function(){ state.settings.language = state.settings.language==="en"?"ar":"en"; saveState(); applyDocDirection(); render(); },
   toggleTheme: function(){ state.settings.theme = state.settings.theme==="light"?"dark":"light"; saveState(); applyTheme(); render(); }
 };
@@ -835,6 +1144,7 @@ function render(){
   var fk = active && active.getAttribute ? active.getAttribute("data-fk") : null;
   var selStart = active ? active.selectionStart : null;
   var selEnd = active ? active.selectionEnd : null;
+  var richSel = (fk && active.classList && active.classList.contains("rich-editor")) ? richGetSel(active) : null;
 
   if(nav.view === "quotation-builder" || nav.view === "quotation-preview"){
     app.innerHTML = '<div class="app-shell">'+renderSidebar()+
@@ -853,7 +1163,9 @@ function render(){
     var restored = app.querySelector('[data-fk="'+fk+'"]');
     if(restored){
       restored.focus();
-      if(typeof selStart === "number" && restored.setSelectionRange){
+      if(restored.classList && restored.classList.contains("rich-editor")){
+        if(richSel) richSetSel(restored, richSel.start, richSel.end); else richCaretEnd(restored);
+      } else if(typeof selStart === "number" && restored.setSelectionRange){
         try{ restored.setSelectionRange(selStart, selEnd); }catch(e){}
       }
     }
@@ -1220,7 +1532,7 @@ function renderBuilder(){
   } else {
     b.items.forEach(function(it,idx){
       var lineTotal = computeLineTotal(it);
-      html += '<div class="line-item-row"'+(b.editingItemIndex===idx?' style="border-color:var(--primary)"':'')+'><div style="display:flex;justify-content:space-between;gap:8px"><div style="font-weight:600;flex:1">'+escapeHtml(it.description||"—")+'</div>';
+      html += '<div class="line-item-row"'+(b.editingItemIndex===idx?' style="border-color:var(--primary)"':'')+'><div style="display:flex;justify-content:space-between;gap:8px"><div style="font-weight:600;flex:1;white-space:pre-wrap">'+(richPlain(it.description).trim()?renderRich(it.description):"—")+'</div>';
       html += '<div style="display:flex;gap:6px;flex-shrink:0">';
       html += '<button class="btn btn-neu btn-icon" style="width:26px;height:26px;padding:0" onclick="CGA.editLineItem('+idx+')">'+ICONS.edit+'</button>';
       html += '<button class="btn btn-neu btn-icon btn-danger" style="width:26px;height:26px;padding:0" onclick="CGA.removeLineItem('+idx+')">'+ICONS.trash+'</button>';
@@ -1233,7 +1545,7 @@ function renderBuilder(){
   }
   // add-line form
   html += '<div class="line-item-row" style="background:var(--muted);border-style:dashed">';
-  html += '<div class="field" style="margin-bottom:8px"><label>'+t("description")+'</label><input data-fk="draft.description" class="input" placeholder="'+t("descriptionPlaceholder")+'" value="'+escapeHtml(b.draftItem.description)+'" oninput="CGA.upperInput(this);CGA.draftSet(\'description\',this.value)"/></div>';
+  html += '<div class="field" style="margin-bottom:8px"><label>'+t("description")+'</label>'+richField("draft.description", b.draftItem.description, t("descriptionPlaceholder"), false)+'</div>';
   html += '<div class="grid3" style="margin-bottom:8px">';
   html += '<div class="field"><label>'+t("quantity")+'</label><input data-fk="draft.qty" class="input" type="number" inputmode="numeric" pattern="[0-9]*" min="0" step="1" value="'+b.draftItem.qty+'" oninput="CGA.draftSet(\'qty\',this.value)"/></div>';
   html += '<div class="field"><label>'+t("unit")+'</label><select class="input" onchange="CGA.draftSet(\'unit\',this.value)">';
@@ -1266,8 +1578,8 @@ function renderBuilder(){
   html += '<div class="field"><label>'+t("deliveryCharge")+'</label><input data-fk="builder.deliveryCharge" class="input" type="number" min="0" step="0.01" value="'+b.deliveryCharge+'" oninput="CGA.builderSet(\'deliveryCharge\',this.value)"/></div>';
   html += '</div>';
   html += '<div class="field"><label>'+t("vat")+' ('+Math.round(b.vatRate*100)+'%)</label><input data-fk="builder.vatRate" class="input" type="number" min="0" max="1" step="0.01" value="'+b.vatRate+'" oninput="CGA.builderSet(\'vatRate\',this.value)"/></div>';
-  html += '<div class="field"><label>'+t("notes")+'</label><textarea data-fk="builder.notes" class="input" placeholder="'+t("addNote")+'" oninput="CGA.upperInput(this);CGA.builderSet(\'notes\',this.value)">'+escapeHtml(b.notes)+'</textarea></div>';
-  html += '<div class="field"><label>'+t("termsConditions")+'</label><textarea data-fk="builder.terms" class="input" style="min-height:110px" oninput="CGA.upperInput(this);CGA.builderSet(\'termsConditions\',this.value)">'+escapeHtml(b.termsConditions)+'</textarea></div>';
+  html += '<div class="field"><label>'+t("notes")+'</label>'+richField("builder.notes", b.notes, t("addNote"), true)+'</div>';
+  html += '<div class="field"><label>'+t("termsConditions")+'</label>'+richField("builder.terms", b.termsConditions, "", true, "min-height:110px")+'</div>';
   html += '<div id="builderTotalsSummary" style="border-top:1px solid var(--border);padding-top:10px;display:grid;gap:4px">'+renderBuilderTotalsInner(b,totals,lang)+'</div>';
   html += '</div></div>';
   html += '</div>';
@@ -1413,7 +1725,7 @@ function renderPreview(){
   html += '<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>'+t("description")+'</th><th class="text-center">'+t("quantity")+'</th><th class="text-end">'+t("unitPrice")+'</th><th class="text-end">'+t("clicheCost")+'</th><th class="text-center">'+t("discount")+'</th><th class="text-end">'+t("lineTotal")+'</th></tr></thead><tbody>';
   q.items.forEach(function(it,idx){
     var lt = computeLineTotal(it);
-    html += '<tr><td class="muted">'+(idx+1)+'</td><td style="font-weight:500">'+escapeHtml(it.description)+'</td>';
+    html += '<tr><td class="muted">'+(idx+1)+'</td><td style="font-weight:500;white-space:pre-wrap">'+renderRich(it.description)+'</td>';
     html += '<td class="text-center">'+it.qty+' '+unitLabel(it.unit)+'</td>';
     html += '<td class="text-end">'+fc(it.unitPrice)+'</td>';
     html += '<td class="text-end">'+(it.clicheCost>0?fc(it.clicheCost):'—')+'</td>';
@@ -1432,8 +1744,8 @@ function renderPreview(){
 
   if(q.notes || q.termsConditions){
     html += '<div class="grid2" style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border)">';
-    if(q.notes) html += '<div class="pd-notes"><div class="small muted" style="text-transform:uppercase;font-weight:600;margin-bottom:6px">'+t("notes")+'</div><p class="small" style="white-space:pre-wrap">'+escapeHtml(q.notes)+'</p></div>';
-    if(q.termsConditions) html += '<div class="pd-terms"><div class="small muted" style="text-transform:uppercase;font-weight:600;margin-bottom:6px">'+t("termsConditions")+'</div><p class="small muted" style="white-space:pre-wrap;font-size:11px">'+escapeHtml(q.termsConditions)+'</p></div>';
+    if(q.notes) html += '<div class="pd-notes"><div class="small muted" style="text-transform:uppercase;font-weight:600;margin-bottom:6px">'+t("notes")+'</div><p class="small" style="white-space:pre-wrap">'+renderRich(q.notes)+'</p></div>';
+    if(q.termsConditions) html += '<div class="pd-terms"><div class="small muted" style="text-transform:uppercase;font-weight:600;margin-bottom:6px">'+t("termsConditions")+'</div><p class="small muted" style="white-space:pre-wrap;font-size:11px">'+renderRich(q.termsConditions)+'</p></div>';
     html += '</div>';
   }
 
@@ -1661,7 +1973,7 @@ Object.assign(window.CGA, {
   addLineItem: function(){
     ensureBuilder();
     var d = builderState.draftItem;
-    if(!d.description.trim()){ toast(t("required"),"error"); return; }
+    if(!richPlain(d.description).trim()){ toast(t("required"),"error"); return; }
     var idx = builderState.editingItemIndex;
     if(idx!=null && builderState.items[idx]){
       var existingId = builderState.items[idx].id;

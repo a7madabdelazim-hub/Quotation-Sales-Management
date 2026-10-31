@@ -955,20 +955,69 @@ document.addEventListener("selectionchange", function(){
     if(s) richLastSel[a.getAttribute("data-fk")] = s;
   }
 });
-/* Build toolbar + editor markup. fk = data-fk key, multiline = allow new lines. */
-function richField(fk, value, placeholder, multiline, extraStyle){
+/* ---- number formatting (bold / color on Qty, Unit Price, Cliché) ---- */
+function fmtClass(f){
+  if(!f) return "";
+  var c = [];
+  if(f.b) c.push("fmt-b");
+  if(f.c && RICH_COLORS.indexOf(f.c)>=0) c.push("fmt-c-"+f.c);
+  return c.join(" ");
+}
+function fmtNum(html, f){
+  var cls = fmtClass(f);
+  return cls ? '<span class="'+cls+'">'+html+'</span>' : String(html);
+}
+function richToolbarHtml(call){
   var ar = state.settings.language==="ar";
   var names = ar ? {black:"أسود",navy:"كحلي",red:"أحمر",green:"أخضر",gold:"ذهبي"} : {black:"Black",navy:"Navy",red:"Red",green:"Green",gold:"Gold"};
   var stop = ' onpointerdown="event.preventDefault()" onmousedown="event.preventDefault()"';
   var h = '<div class="rich-toolbar no-print">';
-  h += '<button type="button" class="rich-btn"'+stop+' title="'+(ar?"عريض":"Bold")+'" onclick="CGA.richFmt(\''+fk+'\',\'bold\')">B</button>';
+  h += '<button type="button" class="rich-btn"'+stop+' title="'+(ar?"عريض":"Bold")+'" onclick="'+call+'\'bold\')">B</button>';
   h += '<span class="rich-sep"></span>';
   RICH_COLORS.forEach(function(k){
-    h += '<button type="button" class="rich-btn rich-sw"'+stop+' title="'+names[k]+'" aria-label="'+names[k]+'" style="background:'+RICH_HEX[k]+'" onclick="CGA.richFmt(\''+fk+'\',\'color\',\''+k+'\')"></button>';
+    h += '<button type="button" class="rich-btn rich-sw"'+stop+' title="'+names[k]+'" aria-label="'+names[k]+'" style="background:'+RICH_HEX[k]+'" onclick="'+call+'\'color\',\''+k+'\')"></button>';
   });
   h += '<span class="rich-sep"></span>';
-  h += '<button type="button" class="rich-btn"'+stop+' title="'+(ar?"إزالة التنسيق":"Clear formatting")+'" style="font-weight:500;font-size:12px" onclick="CGA.richFmt(\''+fk+'\',\'clear\')">'+(ar?"مسح":"Clear")+'</button>';
+  h += '<button type="button" class="rich-btn"'+stop+' title="'+(ar?"إزالة التنسيق":"Clear formatting")+'" style="font-weight:500;font-size:12px" onclick="'+call+'\'clear\')">'+(ar?"مسح":"Clear")+'</button>';
   h += '</div>';
+  return h;
+}
+/* One line opened in place: description + numbers, one shared toolbar. */
+function renderLineEditor(b, isNew){
+  var d = b.draftItem, lang = state.settings.language, ar = lang==="ar";
+  var draftTotal = d.qty * d.unitPrice * (1-d.discountPercent/100) + (d.clicheCost||0);
+  var h = '<div class="line-item-row line-open" style="border:2px solid var(--primary)">';
+  h += richToolbarHtml("CGA.lineFmt(");
+  h += '<div class="small muted" style="margin:-2px 0 8px">'+(ar?"حدد كلمات من الوصف، أو اضغط على خانة رقم، ثم اختر التنسيق":"Select words in the description, or tap a number box, then pick B or a color")+'</div>';
+  h += '<div class="field" style="margin-bottom:8px"><label>'+t("description")+'</label>'+richField("draft.description", d.description, t("descriptionPlaceholder"), false, null, true)+'</div>';
+  h += '<div class="grid3" style="margin-bottom:8px">';
+  h += '<div class="field"><label>'+t("quantity")+'</label><input data-fk="draft.qty" class="input '+fmtClass(d.qtyFmt)+'" type="number" inputmode="decimal" min="0" step="1" value="'+d.qty+'" oninput="CGA.draftSet(\'qty\',this.value)"/></div>';
+  h += '<div class="field"><label>'+t("unit")+'</label><select class="input" onchange="CGA.draftSet(\'unit\',this.value)">';
+  [["PCS","pcs"],["CTN","ctn"],["meter","m"],["kg","kg"],["set","set"],["box","box"],["liter","liter"],["hour","hour"],["sqm","sqm"]].forEach(function(u){
+    h += '<option value="'+u[0]+'" '+(d.unit===u[0]?'selected':'')+'>'+t(u[1])+'</option>';
+  });
+  h += '</select></div>';
+  h += '<div class="field"><label>'+t("unitPrice")+'</label><input data-fk="draft.unitPrice" class="input '+fmtClass(d.unitPriceFmt)+'" type="number" inputmode="decimal" min="0" step="0.01" value="'+d.unitPrice+'" oninput="CGA.draftSet(\'unitPrice\',this.value)"/></div>';
+  h += '</div>';
+  h += '<div class="grid3">';
+  h += '<div class="field"><label>'+t("clicheCost")+'</label><input data-fk="draft.clicheCost" class="input '+fmtClass(d.clicheCostFmt)+'" type="number" inputmode="decimal" min="0" step="0.01" value="'+d.clicheCost+'" oninput="CGA.draftSet(\'clicheCost\',this.value)"/></div>';
+  h += '<div class="field"><label>'+t("discount")+'</label><input data-fk="draft.discountPercent" class="input" type="number" min="0" max="100" step="1" value="'+d.discountPercent+'" oninput="CGA.draftSet(\'discountPercent\',this.value)"/></div>';
+  h += '<div class="field"><label>'+t("lineTotal")+'</label><input class="input" id="draftLineTotalDisplay" disabled value="'+formatCurrency(draftTotal,b.currency,lang)+'"/></div>';
+  h += '</div>';
+  h += '<div style="display:flex;gap:8px;margin-top:10px">';
+  if(!(isNew && b.items.length===0)) h += '<button class="btn btn-outline" style="flex:0 0 auto" onclick="CGA.cancelEditLineItem()">'+t("cancel")+'</button>';
+  h += '<button class="btn btn-primary btn-block" onclick="CGA.addLineItem()">'+(isNew ? ICONS.plus+' '+t("addLine") : ICONS.edit+' '+t("updateLine"))+'</button>';
+  h += '</div></div>';
+  return h;
+}
+var lineLastFk = null;
+document.addEventListener("focusin", function(e){
+  var fk = e.target && e.target.getAttribute && e.target.getAttribute("data-fk");
+  if(fk==="draft.description"||fk==="draft.qty"||fk==="draft.unitPrice"||fk==="draft.clicheCost") lineLastFk = fk;
+});
+/* Build toolbar + editor markup. fk = data-fk key, multiline = allow new lines. */
+function richField(fk, value, placeholder, multiline, extraStyle, noToolbar){
+  var h = noToolbar ? '' : richToolbarHtml("CGA.richFmt(\''+fk+'\',");
   h += '<div data-fk="'+fk+'" data-rich="'+fk+'" data-multi="'+(multiline?"1":"0")+'" class="input rich-editor'+(multiline?" rich-multi":"")+'" contenteditable="true" spellcheck="false" role="textbox"'+(multiline?' aria-multiline="true"':'')+' data-placeholder="'+escapeHtml(placeholder||"")+'"'+(extraStyle?' style="'+extraStyle+'"':'')+
        ' onbeforeinput="CGA.richBefore(this,event)" oninput="CGA.richInput(this,event)" onkeydown="CGA.richKey(this,event)" onpaste="CGA.richPaste(this,event)" oncompositionend="CGA.richInput(this,event)">'+richEditorHtml(value)+'</div>';
   return h;
@@ -992,27 +1041,32 @@ function closePreview(){ nav.view = "history"; nav.previewId = null; render(); }
 window.CGA = {
   setView: setView, openPreview: openPreview, closePreview: closePreview,
   upperInput: upperInput,
-  itemSet: function(idx, k, v){
+  startNewLine: function(){
     ensureBuilder();
-    var it = builderState.items[idx];
-    if(!it) return;
-    v = parseFloat(v); if(!(v>=0)) v = 0;
-    it[k] = v;
-    var b = builderState, lang = state.settings.language;
-    var lt = document.getElementById("lineTotal_"+idx);
-    if(lt) lt.textContent = formatCurrency(computeLineTotal(it), b.currency, lang);
-    var el = document.getElementById("builderTotalsSummary");
-    if(el){
-      var totals = computeQuotationTotals({items:b.items, globalDiscountPercent:b.globalDiscountPercent, vatRate:b.vatRate, deliveryCharge:b.deliveryCharge});
-      el.innerHTML = renderBuilderTotalsInner(b, totals, lang);
+    builderState.draftItem = {description:"",qty:1,unit:"PCS",unitPrice:0,clicheCost:0,discountPercent:0};
+    builderState.editingItemIndex = null;
+    builderState.addingLine = true;
+    render();
+    var el = document.querySelector('[data-fk="draft.description"]');
+    if(el){ el.scrollIntoView({behavior:"smooth",block:"center"}); el.focus(); }
+  },
+  lineFmt: function(cmd, arg){
+    var a = document.activeElement;
+    var fk = (a && a.getAttribute && a.getAttribute("data-fk")) || lineLastFk;
+    if(fk==="draft.description"){ CGA.richFmt(fk, cmd, arg); return; }
+    if(fk!=="draft.qty" && fk!=="draft.unitPrice" && fk!=="draft.clicheCost"){
+      toast(state.settings.language==="ar" ? "اضغط على الوصف أو خانة رقم أولاً" : "Tap the description or a number box first", "error");
+      return;
     }
-    // keep the edit form in sync if this same line is open in it
-    if(b.editingItemIndex===idx){
-      b.draftItem[k] = v;
-      var de = document.querySelector('[data-fk="draft.'+k+'"]');
-      if(de) de.value = v;
-      CGA.draftSet(k, v);
-    }
+    ensureBuilder();
+    var key = fk.split(".")[1], d = builderState.draftItem;
+    var f = d[key+"Fmt"] ? {b:!!d[key+"Fmt"].b, c:d[key+"Fmt"].c||null} : {b:false, c:null};
+    if(cmd==="bold") f.b = !f.b;
+    else if(cmd==="color") f.c = (f.c===arg) ? null : arg;
+    else if(cmd==="clear"){ f.b = false; f.c = null; }
+    d[key+"Fmt"] = (f.b||f.c) ? f : null;
+    var el = document.querySelector('[data-fk="'+fk+'"]');
+    if(el){ el.className = ("input "+fmtClass(d[key+"Fmt"])).trim(); el.focus(); }
   },
   richInput: function(ed, ev){
     if(ev && ev.isComposing) return;
@@ -1549,51 +1603,29 @@ function renderBuilder(){
 
   // line items
   html += '<div class="card" style="margin-top:12px"><div class="card-header"><div class="card-title">'+t("addLineItem")+'</div></div><div class="card-body">';
-  if(b.items.length===0){
+  var addingNew = b.addingLine || b.items.length===0;
+  if(b.items.length===0 && !addingNew){
     html += '<div class="empty-state small">'+t("noItems")+'<br/>'+t("noItemsDesc")+'</div>';
-  } else {
-    b.items.forEach(function(it,idx){
-      var lineTotal = computeLineTotal(it);
-      html += '<div class="line-item-row"'+(b.editingItemIndex===idx?' style="border-color:var(--primary)"':'')+'><div style="display:flex;justify-content:space-between;gap:8px"><div style="font-weight:600;flex:1;white-space:pre-wrap">'+(richPlain(it.description).trim()?renderRich(it.description):"—")+'</div>';
-      html += '<div style="display:flex;gap:6px;flex-shrink:0">';
-      html += '<button class="btn btn-neu btn-icon" style="width:26px;height:26px;padding:0" onclick="CGA.editLineItem('+idx+')">'+ICONS.edit+'</button>';
-      html += '<button class="btn btn-neu btn-icon btn-danger" style="width:26px;height:26px;padding:0" onclick="CGA.removeLineItem('+idx+')">'+ICONS.trash+'</button>';
-      html += '</div></div>';
-      // quick-edit: qty / unit price / cliché cost right on the line, totals update live
-      html += '<div class="grid3 line-quick-edit" style="margin-top:8px">';
-      html += '<div class="field" style="margin:0"><label>'+t("quantity")+' ('+unitLabel(it.unit)+')</label><input data-fk="item.'+idx+'.qty" class="input" type="number" inputmode="decimal" min="0" step="1" value="'+it.qty+'" oninput="CGA.itemSet('+idx+',\'qty\',this.value)"/></div>';
-      html += '<div class="field" style="margin:0"><label>'+t("unitPrice")+'</label><input data-fk="item.'+idx+'.unitPrice" class="input" type="number" inputmode="decimal" min="0" step="0.01" value="'+it.unitPrice+'" oninput="CGA.itemSet('+idx+',\'unitPrice\',this.value)"/></div>';
-      html += '<div class="field" style="margin:0"><label>'+t("clicheCost")+'</label><input data-fk="item.'+idx+'.clicheCost" class="input" type="number" inputmode="decimal" min="0" step="0.01" value="'+(it.clicheCost||0)+'" oninput="CGA.itemSet('+idx+',\'clicheCost\',this.value)"/></div>';
-      html += '</div>';
-      html += '<div class="small muted" style="margin-top:6px;display:flex;justify-content:space-between;gap:8px"><span>'+(it.discountPercent>0 ? (t("discount")+' '+it.discountPercent+'%') : '')+'</span><span>'+t("lineTotal")+': <b id="lineTotal_'+idx+'" style="color:var(--foreground)">'+formatCurrency(lineTotal,b.currency,lang)+'</b></span></div></div>';
-    });
   }
-  // add-line form
-  html += '<div class="line-item-row" style="background:var(--muted);border-style:dashed">';
-  html += '<div class="field" style="margin-bottom:8px"><label>'+t("description")+'</label>'+richField("draft.description", b.draftItem.description, t("descriptionPlaceholder"), false)+'</div>';
-  html += '<div class="grid3" style="margin-bottom:8px">';
-  html += '<div class="field"><label>'+t("quantity")+'</label><input data-fk="draft.qty" class="input" type="number" inputmode="numeric" pattern="[0-9]*" min="0" step="1" value="'+b.draftItem.qty+'" oninput="CGA.draftSet(\'qty\',this.value)"/></div>';
-  html += '<div class="field"><label>'+t("unit")+'</label><select class="input" onchange="CGA.draftSet(\'unit\',this.value)">';
-  [["PCS","pcs"],["CTN","ctn"],["meter","m"],["kg","kg"],["set","set"],["box","box"],["liter","liter"],["hour","hour"],["sqm","sqm"]].forEach(function(u){
-    html += '<option value="'+u[0]+'" '+(b.draftItem.unit===u[0]?'selected':'')+'>'+t(u[1])+'</option>';
+  b.items.forEach(function(it,idx){
+    if(b.editingItemIndex===idx){ html += renderLineEditor(b, false); return; }
+    var lineTotal = computeLineTotal(it);
+    var fcB = function(v){ return formatCurrency(v,b.currency,lang); };
+    html += '<div class="line-item-row"><div style="display:flex;justify-content:space-between;gap:8px"><div style="font-weight:600;flex:1;white-space:pre-wrap">'+(richPlain(it.description).trim()?renderRich(it.description):"—")+'</div>';
+    html += '<div style="display:flex;gap:6px;flex-shrink:0">';
+    html += '<button class="btn btn-neu btn-icon" style="width:26px;height:26px;padding:0" onclick="CGA.editLineItem('+idx+')">'+ICONS.edit+'</button>';
+    html += '<button class="btn btn-neu btn-icon btn-danger" style="width:26px;height:26px;padding:0" onclick="CGA.removeLineItem('+idx+')">'+ICONS.trash+'</button>';
+    html += '</div></div>';
+    html += '<div class="small muted" style="margin-top:4px">'+fmtNum(it.qty, it.qtyFmt)+' '+unitLabel(it.unit)+' × '+fmtNum(fcB(it.unitPrice), it.unitPriceFmt)+
+      (it.discountPercent>0 ? (' • '+t("discount")+' '+it.discountPercent+'%') : '') +
+      (it.clicheCost>0 ? (' • '+t("clicheCost")+' '+fmtNum(fcB(it.clicheCost), it.clicheCostFmt)) : '') +
+      ' • <b>'+fcB(lineTotal)+'</b></div></div>';
   });
-  html += '</select></div>';
-  html += '<div class="field"><label>'+t("unitPrice")+'</label><input data-fk="draft.unitPrice" class="input" type="number" inputmode="decimal" min="0" step="0.01" value="'+b.draftItem.unitPrice+'" oninput="CGA.draftSet(\'unitPrice\',this.value)"/></div>';
-  html += '</div>';
-  html += '<div class="grid3">';
-  html += '<div class="field"><label>'+t("clicheCost")+'</label><input data-fk="draft.clicheCost" class="input" type="number" inputmode="decimal" min="0" step="0.01" value="'+b.draftItem.clicheCost+'" oninput="CGA.draftSet(\'clicheCost\',this.value)"/></div>';
-  html += '<div class="field"><label>'+t("discount")+'</label><input data-fk="draft.discountPercent" class="input" type="number" min="0" max="100" step="1" value="'+b.draftItem.discountPercent+'" oninput="CGA.draftSet(\'discountPercent\',this.value)"/></div>';
-  html += '<div class="field"><label>'+t("lineTotal")+'</label><input class="input" id="draftLineTotalDisplay" disabled value="'+formatCurrency(draftTotal,b.currency,lang)+'"/></div>';
-  html += '</div>';
-  html += '<div style="display:flex;gap:8px;margin-top:10px">';
-  if(b.editingItemIndex!=null){
-    html += '<button class="btn btn-outline" style="flex:0 0 auto" onclick="CGA.cancelEditLineItem()">'+t("cancel")+'</button>';
-    html += '<button class="btn btn-primary btn-block" onclick="CGA.addLineItem()">'+ICONS.edit+' '+t("updateLine")+'</button>';
+  if(addingNew && b.editingItemIndex==null){
+    html += renderLineEditor(b, true);
   } else {
-    html += '<button class="btn btn-primary btn-block" onclick="CGA.addLineItem()">'+ICONS.plus+' '+t("addLine")+'</button>';
+    html += '<button class="btn btn-outline btn-block" style="border-style:dashed;margin-top:4px" onclick="CGA.startNewLine()">'+ICONS.plus+' '+t("addLine")+'</button>';
   }
-  html += '</div>';
-  html += '</div>';
   html += '</div></div>';
 
   // totals & extras
@@ -1751,9 +1783,9 @@ function renderPreview(){
   q.items.forEach(function(it,idx){
     var lt = computeLineTotal(it);
     html += '<tr><td class="muted">'+(idx+1)+'</td><td style="font-weight:500;white-space:pre-wrap">'+renderRich(it.description)+'</td>';
-    html += '<td class="text-center">'+it.qty+' '+unitLabel(it.unit)+'</td>';
-    html += '<td class="text-end">'+fc(it.unitPrice)+'</td>';
-    html += '<td class="text-end">'+(it.clicheCost>0?fc(it.clicheCost):'—')+'</td>';
+    html += '<td class="text-center">'+fmtNum(it.qty, it.qtyFmt)+' '+unitLabel(it.unit)+'</td>';
+    html += '<td class="text-end">'+fmtNum(fc(it.unitPrice), it.unitPriceFmt)+'</td>';
+    html += '<td class="text-end">'+(it.clicheCost>0?fmtNum(fc(it.clicheCost), it.clicheCostFmt):'—')+'</td>';
     html += '<td class="text-center">'+(it.discountPercent>0?it.discountPercent+'%':'—')+'</td>';
     html += '<td class="text-end" style="font-weight:600">'+fc(lt)+'</td></tr>';
   });
@@ -2002,21 +2034,23 @@ Object.assign(window.CGA, {
     var idx = builderState.editingItemIndex;
     if(idx!=null && builderState.items[idx]){
       var existingId = builderState.items[idx].id;
-      builderState.items[idx] = {id:existingId,description:d.description,qty:d.qty||1,unit:d.unit,unitPrice:d.unitPrice||0,clicheCost:d.clicheCost||0,discountPercent:d.discountPercent||0};
+      builderState.items[idx] = {id:existingId,description:d.description,qty:d.qty||1,unit:d.unit,unitPrice:d.unitPrice||0,clicheCost:d.clicheCost||0,discountPercent:d.discountPercent||0,qtyFmt:d.qtyFmt||null,unitPriceFmt:d.unitPriceFmt||null,clicheCostFmt:d.clicheCostFmt||null};
       toast(t("lineUpdated"),"success");
     } else {
-      builderState.items.push({id:uid("item"),description:d.description,qty:d.qty||1,unit:d.unit,unitPrice:d.unitPrice||0,clicheCost:d.clicheCost||0,discountPercent:d.discountPercent||0});
+      builderState.items.push({id:uid("item"),description:d.description,qty:d.qty||1,unit:d.unit,unitPrice:d.unitPrice||0,clicheCost:d.clicheCost||0,discountPercent:d.discountPercent||0,qtyFmt:d.qtyFmt||null,unitPriceFmt:d.unitPriceFmt||null,clicheCostFmt:d.clicheCostFmt||null});
     }
     builderState.draftItem = {description:"",qty:1,unit:"PCS",unitPrice:0,clicheCost:0,discountPercent:0};
     builderState.editingItemIndex = null;
+    builderState.addingLine = false;
     render();
   },
   editLineItem: function(idx){
     ensureBuilder();
     var it = builderState.items[idx];
     if(!it) return;
-    builderState.draftItem = {description:it.description,qty:it.qty,unit:it.unit,unitPrice:it.unitPrice,clicheCost:it.clicheCost,discountPercent:it.discountPercent};
+    builderState.draftItem = {description:it.description,qty:it.qty,unit:it.unit,unitPrice:it.unitPrice,clicheCost:it.clicheCost,discountPercent:it.discountPercent,qtyFmt:it.qtyFmt||null,unitPriceFmt:it.unitPriceFmt||null,clicheCostFmt:it.clicheCostFmt||null};
     builderState.editingItemIndex = idx;
+    builderState.addingLine = false;
     render();
     var descEl = document.querySelector('[data-fk="draft.description"]');
     if(descEl) descEl.scrollIntoView({behavior:"smooth",block:"center"});
@@ -2025,6 +2059,7 @@ Object.assign(window.CGA, {
     ensureBuilder();
     builderState.draftItem = {description:"",qty:1,unit:"PCS",unitPrice:0,clicheCost:0,discountPercent:0};
     builderState.editingItemIndex = null;
+    builderState.addingLine = false;
     render();
   },
   removeLineItem: function(idx){

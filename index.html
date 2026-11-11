@@ -1156,6 +1156,7 @@ function richField(fk, value, placeholder, multiline, extraStyle, noToolbar){
      { app:"CGC-BACKUP", v:1, exportedAt, quotationApp:{...}, orderTracker:{...} }
    Each app writes and reads only its own section and ignores the other. */
 var BACKUP_MAX_BYTES = 8*1024*1024;
+var APP_VERSION = "12 Nov 2026 (2)";   // [E5] shown in Settings so you can tell which version an icon runs
 function isIOSDevice(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1); }
 function isHomeScreenApp(){ return navigator.standalone===true || (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches); }
 function daysSince(iso){
@@ -1193,6 +1194,7 @@ function backupCardHtml(){
   var h = '<div class="card"><div class="card-header"><div class="card-title">'+L2("Backup","النسخ الاحتياطي")+'</div></div><div class="card-body space-y">';
   h += '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" onclick="CGA.exportBackup()">'+L2("Export backup","تصدير نسخة")+'</button><button class="btn btn-outline" onclick="CGA.restoreBackup()">'+L2("Restore backup","استعادة نسخة")+'</button></div>';
   h += '<div id="healthBox" style="border:1px solid var(--border);border-radius:12px;padding:10px 12px;display:grid;gap:6px">';
+  h += row(L2("Version","الإصدار"), escapeHtml(APP_VERSION), false);
   h += row(L2("Last backup","آخر نسخة"), escapeHtml(when)+(stale?' · '+L2("export one now","صدّر نسخة الآن"):''), stale);
   h += row(L2("Quotations on this device","عروض الأسعار على هذا الجهاز"), String(state.quotations.length), false);
   h += row(L2("Customers on this device","العملاء على هذا الجهاز"), String(state.customers.length), false);
@@ -1298,6 +1300,35 @@ function pickBackupFile(){
   });
   input.click();
 }
+
+/* ---------------- Customer picker  [E3] ----------------
+   A striped, searchable list (name, number, brands) replaces the plain menu. */
+var custPickUI = { q:"", expandId:null };
+function custPickRowsHtml(){
+  var q = String(custPickUI.q||"").trim().toUpperCase();
+  var list = state.customers.filter(function(c){
+    if(!q) return true;
+    return String(c.nameEn||"").toUpperCase().indexOf(q)>-1 || String(c.nameAr||"").toUpperCase().indexOf(q)>-1 ||
+      String(c.code||"").toUpperCase().indexOf(q)>-1 || (c.brands||[]).some(function(b){ return b.indexOf(q)>-1; });
+  }).sort(function(a,b){ return String(a.nameEn||"").localeCompare(String(b.nameEn||"")); });
+  if(!list.length) return '<div class="small muted" style="padding:16px;text-align:center">'+L2("No customer matches. Add the customer in Customers first.","لا يوجد عميل مطابق. أضف العميل من العملاء أولاً.")+'</div>';
+  var cur = builderState ? builderState.customerId : "";
+  return list.map(function(c, i){
+    var brands = c.brands||[], sel = c.id===cur, open = custPickUI.expandId===c.id;
+    var bg = sel ? 'var(--accent)' : (i%2 ? 'var(--muted)' : 'var(--card)');
+    var num = String(c.code||"").toUpperCase()==="NEW" ? '<span class="badge" style="background:#fbeedd;color:#a5601a">NEW</span>' : '<span class="mono small muted">'+escapeHtml(c.code||"—")+'</span>';
+    var h = '<div data-cust-row="'+escapeHtml(c.id)+'" role="button" tabindex="0" onclick="CGA.custPickTap(\''+c.id+'\')" style="padding:10px 12px;background:'+bg+';display:flex;justify-content:space-between;align-items:flex-start;gap:8px;cursor:pointer;border-bottom:1px solid var(--border)">'+
+      '<div style="min-width:0"><div style="font-weight:600">'+escapeHtml(c.nameEn)+(sel?' ✓':'')+'</div><div class="small muted">'+(brands.length ? L2("Brands","العلامات")+': '+brands.map(escapeHtml).join(' · ') : L2("No brands","بدون علامات"))+'</div></div>'+
+      '<div style="flex-shrink:0">'+num+'</div></div>';
+    if(open && brands.length){
+      h += '<div style="padding:8px 12px 12px;background:'+bg+';border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap"><span class="small muted" style="width:100%">'+L2("Which brand is this quotation for?","لأي علامة هذا العرض؟")+'</span>'+
+        [""].concat(brands).map(function(br){ return '<button type="button" class="btn btn-outline btn-sm" data-brand-pick="'+escapeHtml(br)+'" onclick="event.stopPropagation();CGA.custPickChoose(\''+c.id+'\',this.getAttribute(\'data-brand-pick\'))">'+escapeHtml(br||c.nameEn)+'</button>'; }).join('')+'</div>';
+    }
+    return h;
+  }).join('');
+}
+function custPickRefresh(){ var el = document.getElementById("custPickList"); if(el) el.innerHTML = custPickRowsHtml(); }
+function custPickClose(){ var w = document.getElementById("custPickWrap"); if(w) w.remove(); }
 
 /* ---------------- Toasts ---------------- */
 function toast(msg, kind){
@@ -1880,10 +1911,10 @@ function renderBuilder(){
 
   html += '<div class="card" style="margin-top:12px"><div class="card-header"><div class="card-title">'+ICONS.file+' '+t("quotationNumber")+'</div></div><div class="card-body space-y">';
   html += '<div class="grid2">';
-  html += '<div class="field"><label>'+t("selectCustomer")+'</label><select class="input" onchange="CGA.builderSet(\'customerId\',this.value)">';
-  html += '<option value="">'+t("selectCustomer")+'</option>';
-  state.customers.forEach(function(c){ html += '<option value="'+c.id+'" '+(b.customerId===c.id?'selected':'')+'>'+escapeHtml(c.code)+' — '+escapeHtml(c.nameEn)+'</option>'; });
-  html += '</select></div>';
+  var pickedCust = state.customers.find(function(c){ return c.id===b.customerId; });
+  html += '<div class="field"><label>'+t("selectCustomer")+'</label><button type="button" id="custPickBtn" class="input" style="text-align:start;display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer" onclick="CGA.custPickOpen()">'+
+    (pickedCust ? '<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600">'+escapeHtml(pickedCust.nameEn)+(b.brand?' · '+escapeHtml(b.brand):'')+'</span><span class="mono small muted" style="flex-shrink:0">'+escapeHtml(pickedCust.code||"")+'</span>'
+                : '<span class="muted">'+t("selectCustomer")+'</span><span class="muted" style="flex-shrink:0">▾</span>')+'</button></div>';
   html += '<div class="field"><label>'+t("currency")+'</label><input class="input" value="'+escapeHtml(b.currency||"SAR")+'" readonly style="opacity:.75"/></div></div>';
   var selCust = state.customers.find(function(c){ return c.id===b.customerId; });
   if(selCust && ((selCust.brands||[]).length || b.brand)){
@@ -2312,6 +2343,8 @@ Object.assign(window.CGA, {
     var owner = numberChanged ? customerWithNumber(f.code, customerUI.editId) : null;
     if(owner){ customerUI.dupOf = owner.id; render(); return; }
     customerUI.dupOf = null;
+    // [E1] a brand name still sitting in the box is added on Save
+    if(String(customerUI.brandDraft||"").trim()){ f.brands = (f.brands||[]).concat([customerUI.brandDraft]); customerUI.brandDraft = ""; }
     f.brands = cleanBrands(f.brands, f.nameEn);
     if(customerUI.editId){
       var c = state.customers.find(function(x){return x.id===customerUI.editId;});
@@ -2400,6 +2433,27 @@ Object.assign(window.CGA, {
   editFromPreview: function(id){ loadQuotationIntoBuilder(id); nav.view="quotation-builder"; render(); },
 
   /* Builder */
+  custPickOpen: function(){
+    ensureBuilder(); custPickClose();
+    custPickUI.q = ""; custPickUI.expandId = null;
+    var wrap = document.createElement("div");
+    wrap.id = "custPickWrap"; wrap.className = "modal-backdrop";
+    wrap.innerHTML = '<div class="modal" style="max-width:520px;width:100%;padding:0;display:flex;flex-direction:column;max-height:86vh;overflow:hidden"><div style="padding:14px 14px 10px"><h3 style="margin:0 0 10px">'+t("selectCustomer")+'</h3><input id="custPickSearch" class="input" placeholder="'+L2("Search name, number or brand","ابحث بالاسم أو الرقم أو العلامة")+'" oninput="CGA.upperInput(this);custPickUI.q=this.value;custPickRefresh()"/></div><div id="custPickList" style="overflow-y:auto;border-top:1px solid var(--border);flex:1"></div><div style="padding:10px 14px;display:flex;justify-content:flex-end;border-top:1px solid var(--border)"><button class="btn btn-outline" onclick="custPickClose()">'+t("cancel")+'</button></div></div>';
+    wrap.addEventListener("click", function(e){ if(e.target===wrap) custPickClose(); });
+    document.body.appendChild(wrap);
+    custPickRefresh();
+  },
+  custPickTap: function(id){
+    var c = state.customers.find(function(x){ return x.id===id; });
+    if(!c) return;
+    if((c.brands||[]).length){ custPickUI.expandId = (custPickUI.expandId===id ? null : id); custPickRefresh(); return; }
+    CGA.custPickChoose(id, "");
+  },
+  custPickChoose: function(id, brand){
+    ensureBuilder();
+    builderState.customerId = id; builderState.brand = brand||""; builderState.custNoInput = "";
+    custPickClose(); render();
+  },
   custNoSet: function(v){ ensureBuilder(); builderState.custNoInput = String(v||"").trim().toUpperCase(); },
   builderSet: function(k,v){
     ensureBuilder();
@@ -2415,7 +2469,8 @@ Object.assign(window.CGA, {
         var totals = computeQuotationTotals({items:b.items, globalDiscountPercent:b.globalDiscountPercent, vatRate:b.vatRate, deliveryCharge:b.deliveryCharge});
         el.innerHTML = renderBuilderTotalsInner(b, totals, state.settings.language);
       }
-    } else if(k==="notes"||k==="termsConditions"){
+    } else if(k==="notes"||k==="termsConditions"||k==="deadline"||k==="date"||k==="validUntil"){
+      // [E2] dates: redrawing here replaced the <input> and closed the iPhone date picker
       // nothing else on screen depends on these live — state is saved, no redraw needed
     } else {
       // structural changes (customer, currency, dates) come from onchange, not typing — full redraw is safe

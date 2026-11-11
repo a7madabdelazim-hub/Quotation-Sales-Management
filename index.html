@@ -853,6 +853,15 @@ function trackerSig(q, custNo){
   var lines = trackerLines(q).map(function(l){ var c = Object.assign({}, l); delete c.id; return c; });
   return JSON.stringify([custNo||"", q.deadline||"", lines].concat(q.brand ? [q.brand] : []));
 }
+// [F1] name printed on the quotation / used in the app's own lists
+function quoteDisplayName(q){ return q.brand || q.customerName || ""; }
+function quoteListName(q){ return (q.brand && q.brand!==q.customerName) ? q.brand+" · "+q.customerName : (q.customerName||""); }
+// [F2] Customer Number box: digits only (8), or the word NEW. Used with a numeric keypad.
+function custCodeClean(v){
+  v = String(v||"").toUpperCase().trim();
+  if(/^N(E(W)?)?$/.test(v)) return v;
+  return v.replace(/[^0-9]/g,"").slice(0,8);
+}
 // [D7] the customer card (other than exceptId) that already uses this number
 function customerWithNumber(code, exceptId){
   code = String(code||"").trim().toUpperCase();
@@ -1156,7 +1165,7 @@ function richField(fk, value, placeholder, multiline, extraStyle, noToolbar){
      { app:"CGC-BACKUP", v:1, exportedAt, quotationApp:{...}, orderTracker:{...} }
    Each app writes and reads only its own section and ignores the other. */
 var BACKUP_MAX_BYTES = 8*1024*1024;
-var APP_VERSION = "12 Nov 2026 (2)";   // [E5] shown in Settings so you can tell which version an icon runs
+var APP_VERSION = "12 Nov 2026 (3)";   // [E5] shown in Settings so you can tell which version an icon runs
 function isIOSDevice(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1); }
 function isHomeScreenApp(){ return navigator.standalone===true || (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches); }
 function daysSince(iso){
@@ -1688,7 +1697,7 @@ function renderDashboard(){
     html += '<table><thead><tr><th>'+t("quotationNumber")+'</th><th>'+t("customer")+'</th><th>'+t("date")+'</th><th>'+t("status")+'</th><th class="text-end">'+t("amount")+'</th></tr></thead><tbody>';
     recent.forEach(function(x){
       var tot = computeQuotationTotals(x);
-      html += '<tr style="cursor:pointer" onclick="CGA.openPreview(\''+x.id+'\')"><td class="mono">'+escapeHtml(x.number)+'</td><td>'+escapeHtml(x.customerName)+'</td><td>'+formatDate(x.date,lang)+'</td><td><span class="'+statusBadgeClass(x.status)+'">'+statusLabel(x.status)+'</span></td><td class="text-end">'+formatCurrency(tot.grandTotal,x.currency,lang)+'</td></tr>';
+      html += '<tr style="cursor:pointer" onclick="CGA.openPreview(\''+x.id+'\')"><td class="mono">'+escapeHtml(x.number)+'</td><td>'+escapeHtml(quoteListName(x))+'</td><td>'+formatDate(x.date,lang)+'</td><td><span class="'+statusBadgeClass(x.status)+'">'+statusLabel(x.status)+'</span></td><td class="text-end">'+formatCurrency(tot.grandTotal,x.currency,lang)+'</td></tr>';
     });
     html += '</tbody></table>';
   }
@@ -1763,7 +1772,7 @@ function renderCustomerModal(){
   var html = '<div class="modal-backdrop" onclick="if(event.target===this)CGA.closeCustomerModal()"><div class="modal">';
   html += '<h3>'+(isEdit?t("editCustomer"):t("addCustomer"))+'</h3>';
   html += '<div class="space-y">';
-  html += '<div class="grid2"><div class="field"><label>'+t("customerCode")+'</label><input data-fk="cust.code" class="input mono" placeholder="12034057 / NEW" value="'+escapeHtml(f.code)+'" oninput="CGA.upperInput(this);CGA.custForm(\'code\',this.value)"/></div>';
+  html += '<div class="grid2"><div class="field"><label>'+t("customerCode")+'</label><div style="display:flex;gap:6px"><input data-fk="cust.code" id="custCodeInput" class="input mono" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="12034057" value="'+escapeHtml(custCodeClean(f.code)||"")+'" oninput="this.value=custCodeClean(this.value);CGA.custForm(\'code\',this.value)"/><button type="button" class="btn btn-outline" style="flex:0 0 auto" onclick="var i=document.getElementById(\'custCodeInput\');i.value=\'NEW\';CGA.custForm(\'code\',\'NEW\')">NEW</button></div></div>';
   html += '<div class="field"><label>'+t("vatNumber")+'</label><input class="input mono" inputmode="numeric" pattern="[0-9]*" maxlength="15" value="'+escapeHtml(f.vatNumber)+'" oninput="CGA.custFormDigits(\'vatNumber\',this,15)"/></div></div>';
   html += '<div class="field"><label>'+t("customerName")+'</label><input class="input" value="'+escapeHtml(f.nameEn)+'" oninput="CGA.upperInput(this);CGA.custForm(\'nameEn\',this.value)"/></div>';
   html += '<div class="field"><label>'+t("customerNameAr")+'</label><input class="input" dir="rtl" value="'+escapeHtml(f.nameAr)+'" oninput="CGA.upperInput(this);CGA.custForm(\'nameAr\',this.value)"/></div>';
@@ -1809,7 +1818,7 @@ function renderHistoryListInner(){
   var lang = state.settings.language;
   var q = historyUI.search.toLowerCase();
   var list = state.quotations.filter(function(x){
-    var matchQ = x.number.toLowerCase().indexOf(q)>-1 || x.customerName.toLowerCase().indexOf(q)>-1;
+    var matchQ = x.number.toLowerCase().indexOf(q)>-1 || x.customerName.toLowerCase().indexOf(q)>-1 || String(x.brand||"").toLowerCase().indexOf(q)>-1;
     var matchStatus = historyUI.status==="all" || x.status===historyUI.status;
     return matchQ && matchStatus;
   }).sort(function(a,b){ return new Date(b.date)-new Date(a.date); });
@@ -1822,7 +1831,7 @@ function renderHistoryListInner(){
     list.forEach(function(x){
       var tot = computeQuotationTotals(x);
       html += '<tr style="cursor:pointer" onclick="CGA.openPreview(\''+x.id+'\')">';
-      html += '<td class="mono">'+escapeHtml(x.number)+'</td><td>'+escapeHtml(x.customerName)+'</td><td>'+formatDate(x.date,lang)+'</td>';
+      html += '<td class="mono">'+escapeHtml(x.number)+'</td><td>'+escapeHtml(quoteListName(x))+'</td><td>'+formatDate(x.date,lang)+'</td>';
       html += '<td><span class="'+statusBadgeClass(x.status)+'">'+statusLabel(x.status)+'</span></td>';
       html += '<td class="text-end">'+formatCurrency(tot.grandTotal,x.currency,lang)+'</td>';
       html += '<td onclick="event.stopPropagation()" style="white-space:nowrap"><button class="btn btn-neu btn-icon btn-danger" style="width:28px;height:28px;padding:0" onclick="CGA.confirmDeleteQuotation(\''+x.id+'\')" title="'+t("delete")+'">'+ICONS.trash+'</button></td>';
@@ -1928,7 +1937,7 @@ function renderBuilder(){
     if(custNoValid(selCust.code)){
       html += '<div class="field"><label>'+t("customerCode")+'</label><input class="input mono" value="'+escapeHtml(String(selCust.code).toUpperCase())+'" readonly style="opacity:.75"/><div class="small muted" style="margin-top:4px">'+L2("Locked. Change it on the customer card in Customers.","مقفل. غيّره من بطاقة العميل في العملاء.")+'</div></div>';
     } else {
-      html += '<div class="field"><label>'+t("customerCode")+' *</label><input data-fk="builder.custNo" class="input mono" autocapitalize="characters" placeholder="12034057 / NEW" value="'+escapeHtml(b.custNoInput||"")+'" oninput="CGA.upperInput(this);CGA.custNoSet(this.value)"/><div class="small" style="margin-top:4px;color:#b3261e">'+
+      html += '<div class="field"><label>'+t("customerCode")+' *</label><div style="display:flex;gap:6px"><input data-fk="builder.custNo" id="builderCustNo" class="input mono" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="12034057" value="'+escapeHtml(b.custNoInput||"")+'" oninput="this.value=custCodeClean(this.value);CGA.custNoSet(this.value)"/><button type="button" class="btn btn-outline" style="flex:0 0 auto" onclick="var i=document.getElementById(\'builderCustNo\');i.value=\'NEW\';CGA.custNoSet(\'NEW\')">NEW</button></div><div class="small" style="margin-top:4px;color:#b3261e">'+
         (selCust.code ? L2('"'+escapeHtml(selCust.code)+'" is not a valid customer number. ','"'+escapeHtml(selCust.code)+'" ليس رقم عميل صحيح. ') : '')+
         L2("Enter 8 digits, or NEW for a new customer. It is saved to the customer card.","أدخل 8 أرقام، أو NEW لعميل جديد. يُحفظ في بطاقة العميل.")+'</div></div>';
     }
@@ -2124,9 +2133,8 @@ function renderPreview(){
 
   html += '<div class="grid2" style="padding:24px 0">';
   html += '<div><div class="small muted" style="text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:8px">'+t("to")+':</div>';
-  html += '<div style="font-weight:600;font-size:16px">'+escapeHtml(q.customerName)+'</div>';
-  if(q.brand && q.brand!==q.customerName) html += '<div class="small" style="font-weight:600">'+L2("Brand","العلامة")+': '+escapeHtml(q.brand)+'</div>';
-  if(customer && customer.nameAr) html += '<div class="small muted" dir="rtl">'+escapeHtml(customer.nameAr)+'</div>';
+  // [F1] customer-facing name: the brand when one is chosen, else the company. No Arabic name line.
+  html += '<div id="quoteToName" style="font-weight:600;font-size:16px">'+escapeHtml(quoteDisplayName(q))+'</div>';
   html += '<div class="small muted" style="margin-top:4px">'+escapeHtml((customer&&customer.contactPerson)||"")+'</div>';
   html += '<div class="small muted">'+escapeHtml((customer&&customer.phone)||"")+'</div>';
   html += '<div class="small muted">'+escapeHtml((customer&&customer.email)||"")+'</div>';
@@ -2171,7 +2179,7 @@ function renderPreview(){
   html += '<div style="height:64px;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:flex-start">'+(state.company.signatureUrl?'<img src="'+state.company.signatureUrl+'" style="height:56px;object-fit:contain"/>':'')+'</div>';
   html += '<div class="small muted" style="margin-top:4px">'+escapeHtml(state.company.nameEn)+'</div></div>';
   html += '<div style="text-align:end"><div class="small muted" style="text-transform:uppercase;font-weight:600;margin-bottom:8px">'+t("customerSignature")+'</div>';
-  html += '<div style="height:64px;border-bottom:1px solid var(--border)"></div><div class="small muted" style="margin-top:4px">'+escapeHtml(q.customerName)+'</div></div>';
+  html += '<div style="height:64px;border-bottom:1px solid var(--border)"></div><div class="small muted" style="margin-top:4px">'+escapeHtml(quoteDisplayName(q))+'</div></div>';
   html += '</div>';
 
   html += '<div class="print-doc-footer" style="text-align:center" class="small muted">';
@@ -2613,7 +2621,7 @@ Object.assign(window.CGA, {
     var totals = computeQuotationTotals(q);
     var lang = state.settings.language;
     function L(en,ar){ return lang==="ar" ? ar : en; }
-    var msg = t("quotation")+" "+q.number+" - "+q.customerName+" - "+formatCurrency(totals.grandTotal,q.currency,lang);
+    var msg = t("quotation")+" "+q.number+" - "+quoteDisplayName(q)+" - "+formatCurrency(totals.grandTotal,q.currency,lang);
     var phone = customer && customer.phone ? customer.phone.replace(/[^0-9]/g,"") : "";
 
     function openWhatsappLink(){
